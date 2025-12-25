@@ -741,13 +741,31 @@
 
             <div class="preview-area">
                 <div class="preview-tabs">
-                    <div class="preview-tab active" onclick="switchSizeRange('large')" id="tab-large">Large (32-21pt)</div>
+                    <div class="preview-tab active" onclick="switchSizeRange('xxl')" id="tab-xxl">XXL (72-57pt)</div>
+                    <div class="preview-tab" onclick="switchSizeRange('xl')" id="tab-xl">XL (56-33pt)</div>
+                    <div class="preview-tab" onclick="switchSizeRange('large')" id="tab-large">Large (32-21pt)</div>
                     <div class="preview-tab" onclick="switchSizeRange('medium')" id="tab-medium">Medium (25-14pt)</div>
                     <div class="preview-tab" onclick="switchSizeRange('small')" id="tab-small">Small (18-8pt)</div>
                     <div class="preview-tab" onclick="switchTab('mixed')" id="tab-mixed">Mixed Preview</div>
                 </div>
                 
-                <div class="preview-tab-content active" id="content-large">
+                <div class="preview-tab-content active" id="content-xxl">
+                    <div class="preview-container" id="preview-container-xxl">
+                        <div class="waterfall-container" id="waterfall-container-xxl">
+                            <!-- XXL font sizes will be generated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-tab-content" id="content-xl">
+                    <div class="preview-container" id="preview-container-xl">
+                        <div class="waterfall-container" id="waterfall-container-xl">
+                            <!-- XL font sizes will be generated here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-tab-content" id="content-large">
                     <div class="preview-container" id="preview-container-large">
                         <div class="waterfall-container" id="waterfall-container-large">
                             <!-- Large font sizes will be generated here -->
@@ -788,12 +806,14 @@
 
     <script>
         const fontSizes = {
-            large: [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21],    // Большие размеры (32-21)
-            medium: [25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14],  // Средние размеры (25-14, нахлест 4)
-            small: [18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8]  // Малые размеры (18-8, нахлест 4)
+            xxl: [72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57],  // XXL sizes (72-57)
+            xl: [56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33],  // XL sizes (56-33)
+            large: [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21],    // Large sizes (32-21)
+            medium: [25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14],  // Medium sizes (25-14, overlap 4)
+            small: [18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8]  // Small sizes (18-8, overlap 4)
         };
-        
-        let currentSizeRange = 'large'; // По умолчанию большие размеры
+
+        let currentSizeRange = 'xxl'; // Default to XXL sizes
         let usePixels = false; // false = pt, true = px
         const loadedFonts = {
             left: null,
@@ -1783,7 +1803,7 @@
         // Initialize mixed waterfall with all sizes
         function initializeMixedWaterfall() {
             const mixedWaterfallContainer = document.getElementById('mixed-waterfall-container');
-            const allSizes = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8];
+            const allSizes = [72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8];
             
             if (mixedWaterfallContainer) {
                 mixedWaterfallContainer.innerHTML = '';
@@ -1930,12 +1950,12 @@
             const featureSettings = buildFeatureSettings();
             const leftVariationSettings = buildVariationSettings('left');
             const rightVariationSettings = buildVariationSettings('right');
-            const allSizes = [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8];
-            
+            const allSizes = [72, 71, 70, 69, 68, 67, 66, 65, 64, 63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8];
+
             allSizes.forEach(size => {
                 const displayUnit = getDisplayUnit(size);
                 const cssSize = `${size}${displayUnit.unit}`;
-                
+
                 const mixedSizeLabel = document.getElementById(`mixed-size-label-${size}`);
                 const mixedElement = document.getElementById(`mixed-sample-${size}`);
                 
@@ -2266,7 +2286,7 @@
             
             if (!loadedFonts.left || !loadedFonts.right) {
                 // Hide all preview containers
-                ['large', 'medium', 'small'].forEach(range => {
+                ['xxl', 'xl', 'large', 'medium', 'small'].forEach(range => {
                     const container = document.getElementById(`preview-container-${range}`);
                     if (container) container.style.display = 'none';
                 });
@@ -2280,7 +2300,7 @@
             pageContainer.classList.add('has-fonts');
             
             // Show all preview containers
-            ['large', 'medium', 'small'].forEach(range => {
+            ['xxl', 'xl', 'large', 'medium', 'small'].forEach(range => {
                 const container = document.getElementById(`preview-container-${range}`);
                 if (container) container.style.display = 'block';
             });
@@ -2351,11 +2371,11 @@
             // Initialize waterfall
             initializeWaterfall();
             
-            // Initialize default tab to large
-            const defaultTab = document.getElementById('tab-large');
+            // Initialize default tab to xxl
+            const defaultTab = document.getElementById('tab-xxl');
             if (defaultTab) {
                 defaultTab.classList.add('active');
-                currentSizeRange = 'large';
+                currentSizeRange = 'xxl';
             }
             
             // Prevent default drag behaviors on document
