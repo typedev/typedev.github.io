@@ -658,7 +658,7 @@
         <div class="header">
             <div>
                 <h1>Font Drag & Drop Preview</h1>
-                <p>Drag font files (TTF, OTF, WOFF) to compare them</p>
+                <p>Drag font files (TTF, OTF, WOFF, WOFF2) to compare them</p>
             </div>
             <div class="theme-toggle">
                 <span>🌞</span>
@@ -2085,30 +2085,21 @@
                 size: file.size
             });
             
-            const validTypes = ['font/ttf', 'font/otf', 'font/woff', 'application/font-woff'];
-            const validExtensions = ['.ttf', '.otf', '.woff'];
-            const woff2Extensions = ['.woff2'];
-            
+            const validTypes = ['font/ttf', 'font/otf', 'font/woff', 'font/woff2', 'application/font-woff', 'application/font-woff2'];
+            const validExtensions = ['.ttf', '.otf', '.woff', '.woff2'];
+
             const fileName = file.name.toLowerCase();
             const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
-            const isWoff2 = woff2Extensions.some(ext => fileName.endsWith(ext));
-            
+
             console.log('File validation:', {
                 fileName,
                 fileType: file.type,
                 hasValidExtension,
-                isValidType: validTypes.includes(file.type),
-                isWoff2
+                isValidType: validTypes.includes(file.type)
             });
-            
-            // Check for WOFF2 specifically and reject it
-            if (isWoff2) {
-                showError(side, 'WOFF2 format is not supported. Please use TTF, OTF, or WOFF format instead.');
-                return;
-            }
-            
+
             if (!validTypes.includes(file.type) && !hasValidExtension) {
-                showError(side, 'Please select a valid font file (TTF, OTF, WOFF)');
+                showError(side, 'Please select a valid font file (TTF, OTF, WOFF, WOFF2)');
                 return;
             }
             
@@ -2116,111 +2107,121 @@
             loadFont(side, file);
         }
 
+        // WOFF2 decompression module (lazy loaded)
+        let woff2Decompress = null;
+
+        // Load WOFF2 decompressor
+        async function loadWoff2Decompressor() {
+            if (woff2Decompress) return woff2Decompress;
+
+            try {
+                const module = await import('https://cdn.jsdelivr.net/npm/woff2-encoder@2.0.0/dist/decompress.js');
+                woff2Decompress = module.default;
+                console.log('WOFF2 decompressor loaded');
+                return woff2Decompress;
+            } catch (error) {
+                console.error('Failed to load WOFF2 decompressor:', error);
+                throw new Error('Failed to load WOFF2 support');
+            }
+        }
+
         // Load font
-        function loadFont(side, file) {
+        async function loadFont(side, file) {
             const dropZone = document.getElementById(`drop-zone-${side}`);
             const fontInfo = document.getElementById(`font-info-${side}`);
-            
+            const isWoff2 = file.name.toLowerCase().endsWith('.woff2');
+
             // Show loading state
-            fontInfo.innerHTML = '<span class="loading">Loading font...</span>';
+            fontInfo.innerHTML = `<span class="loading">Loading font...${isWoff2 ? ' (decompressing WOFF2)' : ''}</span>`;
             fontInfo.style.display = 'block';
-            
-            // Create object URL for the font
-            const fontUrl = URL.createObjectURL(file);
+
             const fontFamily = `font-${side}-${Date.now()}`;
-            
-            // Load font with opentype.js
-            const fileReader = new FileReader();
-            fileReader.onload = function(e) {
-                try {
-                    console.log('Attempting to parse font:', file.name);
-                    
-                    // Parse font with opentype.js
-                    const font = opentype.parse(e.target.result);
-                    
-                    console.log('Font parsed successfully:', {
-                        fontFamily: font.names?.fontFamily?.en,
-                        numGlyphs: font.numGlyphs,
-                        supported: font.supported
-                    });
-                    
-                    // Store opentype.js font object
-                    fontObjects[side] = font;
-                    
-                    // Debug font structure
-                    debugFontStructure(font, side);
-                    
-                    // Create font face for CSS
-                    const fontFace = new FontFace(fontFamily, `url(${fontUrl})`);
-                    
-                    fontFace.load().then(() => {
-                        document.fonts.add(fontFace);
-                        
-                        // Store font data
-                        loadedFonts[side] = fontFamily;
-                        fontData[side] = {
-                            name: file.name,
-                            size: file.size,
-                            type: file.type || 'Unknown',
-                            familyName: font.names.fontFamily ? font.names.fontFamily.en : 'Unknown',
-                            fullName: font.names.fullName ? font.names.fullName.en : file.name
-                        };
-                        
-                        // Update UI
-                        dropZone.classList.add('has-font');
-                        fontInfo.innerHTML = `
-                            <strong>${fontData[side].fullName}</strong><br>
-                            Family: ${fontData[side].familyName}<br>
-                            Size: ${(file.size / 1024).toFixed(1)} KB<br>
-                            Type: ${getFileExtension(file.name).toUpperCase()}
-                        `;
-                        
-                        // Update available features
-                        updateAvailableFeatures();
-                        
-                        // Ensure we have a valid current size range
-                        if (!currentSizeRange || !fontSizes[currentSizeRange]) {
-                            currentSizeRange = 'large';
-                        }
-                        
-                        updatePreview();
-                        
-                    }).catch(error => {
-                        console.error('Font face loading error:', error);
-                        showError(side, 'Failed to load font face. Please try a different file.');
-                        fontInfo.style.display = 'none';
-                        URL.revokeObjectURL(fontUrl);
-                    });
-                    
-                } catch (error) {
-                    console.error('Font parsing error:', error);
-                    console.error('Error details:', {
-                        message: error.message,
-                        stack: error.stack,
-                        fileName: file.name,
-                        fileType: file.type,
-                        fileSize: file.size
-                    });
-                    
-                    // Check if it's a WOFF2 specific issue
-                    if (file.name.toLowerCase().endsWith('.woff2')) {
-                        showError(side, 'WOFF2 format may not be fully supported. Please try TTF, OTF, or WOFF format.');
-                    } else {
-                        showError(side, 'Failed to parse font. Please try a different file.');
-                    }
-                    
-                    fontInfo.style.display = 'none';
-                    URL.revokeObjectURL(fontUrl);
+
+            try {
+                // Read file as ArrayBuffer
+                const arrayBuffer = await file.arrayBuffer();
+                let fontBuffer = arrayBuffer;
+                let fontBlobUrl;
+
+                // Decompress WOFF2 if needed
+                if (isWoff2) {
+                    console.log('Decompressing WOFF2 file:', file.name);
+                    const decompress = await loadWoff2Decompressor();
+                    const decompressed = await decompress(arrayBuffer);
+                    fontBuffer = decompressed.buffer;
+
+                    // Create blob URL from decompressed data for FontFace
+                    const blob = new Blob([decompressed], { type: 'font/ttf' });
+                    fontBlobUrl = URL.createObjectURL(blob);
+                } else {
+                    fontBlobUrl = URL.createObjectURL(file);
                 }
-            };
-            
-            fileReader.onerror = function() {
-                showError(side, 'Failed to read font file.');
+
+                console.log('Attempting to parse font:', file.name);
+
+                // Parse font with opentype.js
+                const font = opentype.parse(fontBuffer);
+
+                console.log('Font parsed successfully:', {
+                    fontFamily: font.names?.fontFamily?.en,
+                    numGlyphs: font.numGlyphs,
+                    supported: font.supported
+                });
+
+                // Store opentype.js font object
+                fontObjects[side] = font;
+
+                // Debug font structure
+                debugFontStructure(font, side);
+
+                // Create font face for CSS
+                const fontFace = new FontFace(fontFamily, `url(${fontBlobUrl})`);
+
+                await fontFace.load();
+                document.fonts.add(fontFace);
+
+                // Store font data
+                loadedFonts[side] = fontFamily;
+                fontData[side] = {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type || 'Unknown',
+                    familyName: font.names.fontFamily ? font.names.fontFamily.en : 'Unknown',
+                    fullName: font.names.fullName ? font.names.fullName.en : file.name
+                };
+
+                // Update UI
+                dropZone.classList.add('has-font');
+                fontInfo.innerHTML = `
+                    <strong>${fontData[side].fullName}</strong><br>
+                    Family: ${fontData[side].familyName}<br>
+                    Size: ${(file.size / 1024).toFixed(1)} KB<br>
+                    Type: ${getFileExtension(file.name).toUpperCase()}
+                `;
+
+                // Update available features
+                updateAvailableFeatures();
+
+                // Ensure we have a valid current size range
+                if (!currentSizeRange || !fontSizes[currentSizeRange]) {
+                    currentSizeRange = 'xxl';
+                }
+
+                updatePreview();
+
+            } catch (error) {
+                console.error('Font loading error:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    fileName: file.name,
+                    fileType: file.type,
+                    fileSize: file.size
+                });
+
+                showError(side, `Failed to load font: ${error.message}`);
                 fontInfo.style.display = 'none';
-                URL.revokeObjectURL(fontUrl);
-            };
-            
-            fileReader.readAsArrayBuffer(file);
+            }
         }
 
         // Clear font
