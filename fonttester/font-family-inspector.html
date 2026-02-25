@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Font Family Inspector</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
+<style>
+  :root {
+    --bg: #f0ede8;
+    --surface: #ffffff;
+    --surface-dim: #e8e5e0;
+    --text: #1a1715;
+    --text-secondary: #6b6560;
+    --text-tertiary: #9a9590;
+    --accent: #c0442a;
+    --accent-light: #fef0ed;
+    --warn: #b8860b;
+    --warn-light: #fdf6e3;
+    --ok: #2a7c4f;
+    --ok-light: #edf7f0;
+    --border: #ddd8d2;
+    --border-light: #ece9e4;
+    --slot-empty: #f7f5f2;
+    --slot-regular: #f0faf4;
+    --slot-italic: #eef4fc;
+    --slot-bold: #fef7ee;
+    --slot-bolditalic: #fdf0f5;
+    --radius: 6px;
+    --font-mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 24px 32px;
+    background: var(--text);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .btn {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.25);
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: rgba(255,255,255,0.1); }
+  .btn-accent {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .btn-accent:hover { background: #a83a24; }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    padding: 12px 32px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+  }
+  .stat-item strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .stat-item.warn strong { color: var(--warn); }
+
+  /* ── View toggle ── */
+  .view-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .view-toggle button {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.6);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .view-toggle button.active {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  .view-toggle button:hover:not(.active) {
+    background: rgba(255,255,255,0.07);
+  }
+
+  /* ── Drop zone ── */
+  .dropzone {
+    margin: 32px;
+    padding: 48px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+  .dropzone.active {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+  .dropzone.has-fonts {
+    margin: 16px 32px;
+    padding: 20px;
+  }
+  .dropzone-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+  .dropzone h2 {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .dropzone p {
+    font-size: 13px;
+    color: var(--text-tertiary);
+  }
+  .dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  /* ── Sample text input ── */
+  .sample-input {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    width: 180px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .sample-input:focus { border-color: rgba(255,255,255,0.5); }
+  .sample-input::placeholder { color: rgba(255,255,255,0.35); }
+
+  /* ── Main content ── */
+  .content { padding: 24px 32px 64px; }
+
+  /* ── Family section ── */
+  .family-section {
+    margin-bottom: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .family-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .family-name {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .family-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    font-family: var(--font-mono);
+  }
+  .family-meta .tag {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--surface-dim);
+  }
+  .family-meta .tag-ok { background: var(--ok-light); color: var(--ok); }
+  .family-meta .tag-warn { background: var(--warn-light); color: var(--warn); }
+
+  /* ── RIBBI grid container ── */
+  .ribbi-container {
+    padding: 16px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  /* ── Single RIBBI group (2×2) ── */
+  .ribbi-group {
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    overflow: hidden;
+    min-width: 220px;
+    flex: 0 0 auto;
+  }
+  .ribbi-group-name {
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--surface-dim);
+    border-bottom: 1px solid var(--border-light);
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ribbi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  /* ── Individual slot ── */
+  .slot {
+    padding: 10px 12px;
+    border-right: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: background 0.15s;
+    cursor: default;
+    position: relative;
+  }
+  .slot:nth-child(2n) { border-right: none; }
+  .slot:nth-child(n+3) { border-bottom: none; }
+
+  .slot.filled-regular  { background: var(--slot-regular); }
+  .slot.filled-italic   { background: var(--slot-italic); }
+  .slot.filled-bold     { background: var(--slot-bold); }
+  .slot.filled-bi       { background: var(--slot-bolditalic); }
+  .slot.filled-regular:hover,
+  .slot.filled-italic:hover,
+  .slot.filled-bold:hover,
+  .slot.filled-bi:hover { filter: brightness(0.97); }
+
+  .slot.empty {
+    background: var(--slot-empty);
+  }
+
+  .slot-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .slot.empty .slot-label { opacity: 0.4; }
+
+  .slot-preview {
+    font-size: 18px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px;
+    min-height: 24px;
+  }
+
+  .slot-info {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    margin-top: 4px;
+  }
+
+  .slot.empty .slot-preview {
+    color: var(--border);
+    font-size: 20px;
+    font-family: var(--font-ui);
+  }
+
+  /* ── List view ── */
+  .list-view { display: none; }
+  .list-view.active { display: block; }
+  .grid-view.active { display: block; }
+
+  .font-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .font-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    white-space: nowrap;
+  }
+  .font-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--border-light);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .font-table tr:hover td {
+    background: #faf9f7;
+  }
+  .font-table .cell-warn {
+    color: var(--warn);
+    font-weight: 600;
+  }
+  .font-table .cell-ok {
+    color: var(--ok);
+  }
+
+  /* ── Detail panel ── */
+  .detail-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 100;
+    justify-content: flex-end;
+  }
+  .detail-overlay.open { display: flex; }
+  .detail-panel {
+    width: min(520px, 90vw);
+    background: var(--surface);
+    height: 100%;
+    overflow-y: auto;
+    box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+    padding: 24px;
+  }
+  .detail-panel h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .detail-panel .detail-sub {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 20px;
+    font-family: var(--font-mono);
+  }
+  .detail-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 4px 8px;
+  }
+  .detail-section {
+    margin-bottom: 20px;
+  }
+  .detail-section h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 12px;
+    gap: 12px;
+  }
+  .detail-row .label {
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .detail-row .value {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-align: right;
+    word-break: break-all;
+  }
+  .detail-preview {
+    padding: 20px;
+    background: var(--bg);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+  .detail-preview .preview-large {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+  .detail-preview .preview-medium {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+  .detail-preview .preview-small {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  .issue-badge {
+    display: inline-block;
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+  .issue-error { background: #fee; color: #c44; }
+  .issue-warn { background: var(--warn-light); color: var(--warn); }
+  .issue-ok { background: var(--ok-light); color: var(--ok); }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .header { padding: 16px; }
+    .content { padding: 16px; }
+    .dropzone { margin: 16px; padding: 32px 16px; }
+    .ribbi-container { padding: 12px; }
+    .ribbi-group { min-width: 180px; }
+    .stats-bar { padding: 10px 16px; }
+  }
+
+  /* ── Loading ── */
+  .loading {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Font Family Inspector</h1>
+  <div class="header-actions">
+    <input type="text" class="sample-input" id="sampleText" placeholder="Preview text…" value="Hamburge">
+    <div class="view-toggle">
+      <button class="active" data-view="grid" onclick="setView('grid')">Grid</button>
+      <button data-view="list" onclick="setView('list')">Table</button>
+    </div>
+    <button class="btn" onclick="exportReport()">Export CSV</button>
+    <button class="btn btn-accent" onclick="clearAll()">Clear All</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar" style="display:none;"></div>
+
+<div class="dropzone" id="dropzone">
+  <input type="file" multiple accept=".ttf,.otf,.woff,.woff2" onchange="handleFiles(this.files)">
+  <div class="dropzone-icon">⊞</div>
+  <h2>Drop font files here</h2>
+  <p>TTF · OTF · WOFF · WOFF2</p>
+</div>
+
+<div class="content" id="content"></div>
+
+<div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail-panel" id="detailPanel"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════
+let allFonts = [];        // Array of parsed font objects
+let loadedFaces = {};     // fontFamily CSS name → true
+let currentView = 'grid';
+let sampleText = 'Hamburge';
+
+document.getElementById('sampleText').addEventListener('input', (e) => {
+  sampleText = e.target.value || 'Hamburge';
+  render();
+});
+
+// ═══════════════════════════════════════════════════════════
+// Drag & Drop
+// ═══════════════════════════════════════════════════════════
+const dz = document.getElementById('dropzone');
+
+document.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('active'); });
+document.addEventListener('dragleave', (e) => {
+  if (!e.relatedTarget || e.relatedTarget === document.documentElement) dz.classList.remove('active');
+});
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dz.classList.remove('active');
+  handleFiles(e.dataTransfer.files);
+});
+
+// ═══════════════════════════════════════════════════════════
+// File handling
+// ═══════════════════════════════════════════════════════════
+async function handleFiles(fileList) {
+  const files = Array.from(fileList).filter(f =>
+    /\.(ttf|otf|woff|woff2)$/i.test(f.name)
+  );
+  if (!files.length) return;
+
+  dz.classList.add('has-fonts');
+
+  for (const file of files) {
+    try {
+      const buf = await file.arrayBuffer();
+      const parsed = parseFont(buf, file.name);
+      if (parsed) {
+        allFonts.push(parsed);
+        // Register for CSS preview
+        registerFontFace(parsed, buf);
+      }
+    } catch (e) {
+      console.error(`Failed to parse ${file.name}:`, e);
+      allFonts.push({
+        fileName: file.name,
+        error: e.message || 'Parse error',
+        id1: '', id2: '', id4: '', id6: '',
+        id16: '', id17: '', id21: '', id22: '',
+        wght: 0, wdth: 0, fsSel: 0, macStyle: 0,
+        hasStat: false, issues: ['Parse error: ' + (e.message || 'unknown')],
+        cssFamily: null,
+      });
+    }
+  }
+
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Font parsing
+// ═══════════════════════════════════════════════════════════
+function parseFont(buffer, fileName) {
+  const font = opentype.parse(buffer, { lowMemory: true });
+  if (!font) throw new Error('Could not parse font');
+
+  const n = (id) => {
+    const rec = font.names;
+    // opentype.js stores names as objects keyed by language
+    const field = nameIdToField[id];
+    if (!field || !rec[field]) return '';
+    // Try English
+    return rec[field].en || Object.values(rec[field])[0] || '';
+  };
+
+  const os2 = font.tables.os2 || {};
+  const head = font.tables.head || {};
+
+  // Check for STAT table
+  let hasStat = false;
+  try {
+    // opentype.js doesn't parse STAT, check raw tables
+    const tags = font.tables && font.directory ? Object.keys(font.directory.tables || {}) : [];
+    hasStat = tags.includes('STAT');
+  } catch(e) {}
+  // Alternative: check via the raw buffer
+  if (!hasStat) {
+    hasStat = hasTableTag(buffer, 'STAT');
+  }
+
+  const info = {
+    fileName,
+    id1:  n(1),
+    id2:  n(2),
+    id4:  n(4),
+    id6:  n(6),
+    id16: n(16),
+    id17: n(17),
+    id21: n(21),
+    id22: n(22),
+    wght: os2.usWeightClass || 0,
+    wdth: os2.usWidthClass || 0,
+    fsSel: os2.fsSelection || 0,
+    macStyle: head.macStyle || 0,
+    version: n(5),
+    hasStat,
+    issues: [],
+    cssFamily: null,
+  };
+
+  // Validate
+  validateFont(info);
+  return info;
+}
+
+const nameIdToField = {
+  0: 'copyright', 1: 'fontFamily', 2: 'fontSubfamily',
+  3: 'uniqueID', 4: 'fullName', 5: 'version', 6: 'postScriptName',
+  7: 'trademark', 8: 'manufacturer', 9: 'designer',
+  11: 'urlVendor', 12: 'urlDesigner', 13: 'license', 14: 'licenseURL',
+  16: 'preferredFamily', 17: 'preferredSubfamily',
+  21: 'WWSFamilyName', 22: 'WWSSubfamilyName',
+};
+
+function hasTableTag(buffer, tag) {
+  const view = new DataView(buffer);
+  // Read sfVersion or WOFF signature
+  const sig = view.getUint32(0);
+  let numTables = 0, offset = 0;
+
+  if (sig === 0x774F4646) {
+    // WOFF
+    numTables = view.getUint16(12);
+    offset = 44;
+    for (let i = 0; i < numTables; i++) {
+      const t = String.fromCharCode(view.getUint8(offset), view.getUint8(offset+1),
+                                     view.getUint8(offset+2), view.getUint8(offset+3));
+      if (t === tag) return true;
+      offset += 20;
+    }
+  } else if (sig === 0x774F4632) {
+    // WOFF2 - harder to parse, skip
+    return false;
+  } else {
+    // TTF/OTF
+    numTables = view.getUint16(4);
+    offset = 12;
+    for (let i = 0; i < numTables; i++) {
+      const t = String.fromCharCode(view.getUint8(offset), view.getUint8(offset+1),
+                                     view.getUint8(offset+2), view.getUint8(offset+3));
+      if (t === tag) return true;
+      offset += 16;
+    }
+  }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Validation
+// ═══════════════════════════════════════════════════════════
+function validateFont(f) {
+  const issues = [];
+
+  // ID2 must be RIBBI
+  if (!['Regular','Italic','Bold','Bold Italic'].includes(f.id2)) {
+    issues.push(`ID2 "${f.id2}" is not RIBBI`);
+  }
+
+  // Check fsSelection consistency
+  const isBoldStyle = f.id2 === 'Bold' || f.id2 === 'Bold Italic';
+  const isItalicStyle = f.id2 === 'Italic' || f.id2 === 'Bold Italic';
+  const isRegularStyle = f.id2 === 'Regular';
+
+  if (isBoldStyle && !(f.fsSel & 0x20)) issues.push('fsSelection: BOLD bit missing');
+  if (isItalicStyle && !(f.fsSel & 0x01)) issues.push('fsSelection: ITALIC bit missing');
+  if (isRegularStyle && !(f.fsSel & 0x40)) issues.push('fsSelection: REGULAR bit missing');
+  if (isBoldStyle && (f.fsSel & 0x40)) issues.push('fsSelection: REGULAR bit set on Bold');
+  if (!(f.fsSel & 0x80)) issues.push('fsSelection: USE_TYPO_METRICS missing');
+
+  // macStyle vs fsSelection
+  if (isBoldStyle && !(f.macStyle & 1)) issues.push('macStyle: Bold bit missing');
+  if (isItalicStyle && !(f.macStyle & 2)) issues.push('macStyle: Italic bit missing');
+  if (!isBoldStyle && (f.macStyle & 1)) issues.push('macStyle: Bold bit set on non-Bold');
+
+  // Missing typographic names
+  if (!f.id16 && f.id2 === 'Regular' && f.wght !== 400) {
+    issues.push('Missing ID16 (Typographic Family)');
+  }
+  if (f.id16 && !f.id17) issues.push('ID16 set but ID17 missing');
+
+  // STAT
+  if (!f.hasStat) issues.push('No STAT table');
+
+  // Bold weight class check
+  if (isBoldStyle && f.wght < 600) issues.push(`wght=${f.wght} too low for Bold style`);
+  if (f.id2 === 'Regular' && f.wght === 700) issues.push('wght=700 but ID2=Regular (should be Bold)');
+
+  f.issues = issues;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CSS font registration for preview
+// ═══════════════════════════════════════════════════════════
+let faceCounter = 0;
+
+function registerFontFace(info, buffer) {
+  const cssName = `_inspected_${faceCounter++}`;
+  info.cssFamily = cssName;
+
+  const blob = new Blob([buffer]);
+  const url = URL.createObjectURL(blob);
+
+  const face = new FontFace(cssName, `url(${url})`);
+  face.load().then(loaded => {
+    document.fonts.add(loaded);
+  }).catch(e => {
+    console.warn(`Could not load ${info.fileName} for preview:`, e);
+    info.cssFamily = null;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// Grouping logic
+// ═══════════════════════════════════════════════════════════
+function groupFonts(fonts) {
+  // Group by Typographic Family (ID16), fall back to RIBBI family (ID1)
+  const typGroups = {};
+  for (const f of fonts) {
+    if (f.error) continue;
+    const typFam = f.id16 || f.id1 || '(unknown)';
+    if (!typGroups[typFam]) typGroups[typFam] = [];
+    typGroups[typFam].push(f);
+  }
+
+  // Within each typographic family, sub-group by RIBBI family (ID1)
+  const result = [];
+  for (const [typFam, members] of Object.entries(typGroups)) {
+    const ribbiGroups = {};
+    for (const f of members) {
+      const rFam = f.id1 || '(unknown)';
+      if (!ribbiGroups[rFam]) ribbiGroups[rFam] = {};
+      ribbiGroups[rFam][f.id2] = f;
+    }
+    result.push({ typFamily: typFam, ribbiGroups, members });
+  }
+
+  // Sort by typographic family name
+  result.sort((a, b) => a.typFamily.localeCompare(b.typFamily));
+  // Sort RIBBI groups within each family by weight
+  for (const fam of result) {
+    const sorted = Object.entries(fam.ribbiGroups).sort((a, b) => {
+      const wa = (a[1].Regular || a[1].Italic || a[1].Bold || a[1]['Bold Italic'] || {}).wght || 0;
+      const wb = (b[1].Regular || b[1].Italic || b[1].Bold || b[1]['Bold Italic'] || {}).wght || 0;
+      return wa - wb;
+    });
+    fam.ribbiGroups = Object.fromEntries(sorted);
+  }
+
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Rendering
+// ═══════════════════════════════════════════════════════════
+function render() {
+  renderStats();
+
+  const grouped = groupFonts(allFonts);
+
+  if (currentView === 'grid') {
+    renderGridView(grouped);
+  } else {
+    renderListView();
+  }
+}
+
+function renderStats() {
+  const bar = document.getElementById('statsBar');
+  if (!allFonts.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+
+  const totalFonts = allFonts.filter(f => !f.error).length;
+  const errors = allFonts.filter(f => f.error).length;
+  const typFamilies = new Set(allFonts.filter(f => !f.error).map(f => f.id16 || f.id1)).size;
+  const ribbiFamilies = new Set(allFonts.filter(f => !f.error).map(f => f.id1)).size;
+  const withStat = allFonts.filter(f => !f.error && f.hasStat).length;
+  const withIssues = allFonts.filter(f => !f.error && f.issues.length > 0).length;
+
+  bar.innerHTML = `
+    <span class="stat-item"><strong>${totalFonts}</strong> fonts</span>
+    <span class="stat-item"><strong>${typFamilies}</strong> typographic families</span>
+    <span class="stat-item"><strong>${ribbiFamilies}</strong> RIBBI groups</span>
+    <span class="stat-item"><strong>${withStat}/${totalFonts}</strong> with STAT</span>
+    ${withIssues ? `<span class="stat-item warn"><strong>${withIssues}</strong> with issues</span>` : ''}
+    ${errors ? `<span class="stat-item warn"><strong>${errors}</strong> parse errors</span>` : ''}
+  `;
+}
+
+function renderGridView(grouped) {
+  const el = document.getElementById('content');
+
+  // Also show errored fonts
+  const errored = allFonts.filter(f => f.error);
+
+  let html = '';
+
+  for (const fam of grouped) {
+    const issueCount = fam.members.filter(f => f.issues.length > 0).length;
+
+    html += `<div class="family-section">`;
+    html += `<div class="family-header">`;
+    html += `<span class="family-name">${esc(fam.typFamily)}</span>`;
+    html += `<div class="family-meta">`;
+    html += `<span class="tag">${fam.members.length} font${fam.members.length > 1 ? 's' : ''}</span>`;
+    html += `<span class="tag">${Object.keys(fam.ribbiGroups).length} RIBBI group${Object.keys(fam.ribbiGroups).length > 1 ? 's' : ''}</span>`;
+
+    const anyStat = fam.members.some(f => f.hasStat);
+    const allStat = fam.members.every(f => f.hasStat);
+    if (allStat) html += `<span class="tag tag-ok">STAT ✓</span>`;
+    else if (anyStat) html += `<span class="tag tag-warn">STAT partial</span>`;
+    else html += `<span class="tag tag-warn">no STAT</span>`;
+
+    if (issueCount > 0) html += `<span class="tag tag-warn">${issueCount} issue${issueCount>1?'s':''}</span>`;
+    html += `</div></div>`;
+
+    html += `<div class="ribbi-container">`;
+
+    for (const [rName, slots] of Object.entries(fam.ribbiGroups)) {
+      html += `<div class="ribbi-group">`;
+      html += `<div class="ribbi-group-name" title="${esc(rName)}">${esc(rName)}</div>`;
+      html += `<div class="ribbi-grid">`;
+
+      for (const style of ['Regular', 'Italic', 'Bold', 'Bold Italic']) {
+        const f = slots[style];
+        if (f) {
+          const cls = style === 'Regular' ? 'filled-regular' :
+                      style === 'Italic' ? 'filled-italic' :
+                      style === 'Bold' ? 'filled-bold' : 'filled-bi';
+          const hasIssues = f.issues.length > 0;
+          const fontStyle = f.cssFamily
+            ? `font-family:'${f.cssFamily}';`
+            : '';
+
+          html += `<div class="slot ${cls}" onclick="showDetail('${esc(f.fileName)}')" title="${esc(f.fileName)}${hasIssues ? '\n⚠ ' + f.issues.length + ' issue(s)' : ''}">`;
+          html += `<div>`;
+          html += `<div class="slot-label">${style}${hasIssues ? ' ⚠' : ''}</div>`;
+          html += `<div class="slot-preview" style="${fontStyle}">${esc(sampleText)}</div>`;
+          html += `</div>`;
+          html += `<div class="slot-info">w${f.wght}</div>`;
+          html += `</div>`;
+        } else {
+          html += `<div class="slot empty">`;
+          html += `<div class="slot-label">${style}</div>`;
+          html += `<div class="slot-preview">—</div>`;
+          html += `</div>`;
+        }
+      }
+
+      html += `</div></div>`; // ribbi-grid, ribbi-group
+    }
+
+    html += `</div></div>`; // ribbi-container, family-section
+  }
+
+  // Errored fonts
+  if (errored.length) {
+    html += `<div class="family-section">`;
+    html += `<div class="family-header"><span class="family-name" style="color:var(--accent)">⚠ Parse Errors</span></div>`;
+    html += `<div style="padding:12px 20px;">`;
+    for (const f of errored) {
+      html += `<div style="padding:4px 0;font-size:13px;font-family:var(--font-mono);">`;
+      html += `<strong>${esc(f.fileName)}</strong> — <span style="color:var(--accent)">${esc(f.error)}</span>`;
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function renderListView() {
+  const el = document.getElementById('content');
+  const fonts = allFonts.filter(f => !f.error);
+
+  let html = `<div class="family-section"><div style="overflow-x:auto;">`;
+  html += `<table class="font-table">`;
+  html += `<thead><tr>
+    <th>File</th><th>ID1 (Family)</th><th>ID2 (Style)</th>
+    <th>ID16 (Typ.Fam)</th><th>ID17 (Typ.Style)</th>
+    <th>ID6 (PS)</th>
+    <th>wght</th><th>wdth</th>
+    <th>fsSel</th><th>mac</th>
+    <th>STAT</th><th>Issues</th>
+  </tr></thead><tbody>`;
+
+  for (const f of fonts) {
+    const hasIssues = f.issues.length > 0;
+    html += `<tr onclick="showDetail('${esc(f.fileName)}')" style="cursor:pointer;">`;
+    html += `<td>${esc(f.fileName)}</td>`;
+    html += `<td>${esc(f.id1)}</td>`;
+    html += `<td>${esc(f.id2)}</td>`;
+    html += `<td>${f.id16 ? esc(f.id16) : '<span class="cell-warn">—</span>'}</td>`;
+    html += `<td>${f.id17 ? esc(f.id17) : '<span class="cell-warn">—</span>'}</td>`;
+    html += `<td>${esc(f.id6)}</td>`;
+    html += `<td>${f.wght}</td>`;
+    html += `<td>${f.wdth}</td>`;
+    html += `<td>${fmtFsSel(f.fsSel)}</td>`;
+    html += `<td>${fmtMacStyle(f.macStyle)}</td>`;
+    html += `<td class="${f.hasStat ? 'cell-ok' : 'cell-warn'}">${f.hasStat ? '✓' : '—'}</td>`;
+    html += `<td>${hasIssues ? `<span class="cell-warn">${f.issues.length}</span>` : '<span class="cell-ok">✓</span>'}</td>`;
+    html += `</tr>`;
+  }
+
+  html += `</tbody></table></div></div>`;
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Detail panel
+// ═══════════════════════════════════════════════════════════
+function showDetail(fileName) {
+  const f = allFonts.find(x => x.fileName === fileName);
+  if (!f) return;
+
+  const panel = document.getElementById('detailPanel');
+  const fontStyle = f.cssFamily ? `font-family:'${f.cssFamily}';` : '';
+
+  let html = `<div style="position:relative;">`;
+  html += `<button class="detail-close" onclick="closeDetail()">×</button>`;
+  html += `<h3>${esc(f.id4 || f.fileName)}</h3>`;
+  html += `<div class="detail-sub">${esc(f.fileName)}</div>`;
+
+  // Preview
+  if (f.cssFamily) {
+    html += `<div class="detail-preview">`;
+    html += `<div class="preview-large" style="${fontStyle}">Hamburgevons 0123</div>`;
+    html += `<div class="preview-medium" style="${fontStyle}">The quick brown fox jumps over the lazy dog</div>`;
+    html += `<div class="preview-small" style="${fontStyle}">АБВГДЕЁЖЗИКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ абвгдеёжзиклмнопрстуфхцчшщъыьэюя</div>`;
+    html += `</div>`;
+  }
+
+  // Issues
+  if (f.issues.length > 0) {
+    html += `<div class="detail-section"><h4>Issues (${f.issues.length})</h4>`;
+    for (const issue of f.issues) {
+      const cls = issue.includes('missing') || issue.includes('Missing') ? 'issue-error' : 'issue-warn';
+      html += `<div style="padding:2px 0;"><span class="issue-badge ${cls}">${esc(issue)}</span></div>`;
+    }
+    html += `</div>`;
+  }
+
+  // Name table
+  html += `<div class="detail-section"><h4>Name Table</h4>`;
+  const nameRows = [
+    ['ID 1', 'Family Name', f.id1],
+    ['ID 2', 'Subfamily', f.id2],
+    ['ID 4', 'Full Name', f.id4],
+    ['ID 6', 'PostScript', f.id6],
+    ['ID 16', 'Typo Family', f.id16 || '(none)'],
+    ['ID 17', 'Typo Style', f.id17 || '(none)'],
+    ['ID 21', 'WWS Family', f.id21 || '(none)'],
+    ['ID 22', 'WWS Style', f.id22 || '(none)'],
+  ];
+  for (const [id, label, val] of nameRows) {
+    const dim = val === '(none)' ? 'color:var(--text-tertiary);' : '';
+    html += `<div class="detail-row"><span class="label">${id} ${label}</span><span class="value" style="${dim}">${esc(val)}</span></div>`;
+  }
+  html += `</div>`;
+
+  // OS/2 & head
+  html += `<div class="detail-section"><h4>OS/2 & head</h4>`;
+  html += `<div class="detail-row"><span class="label">usWeightClass</span><span class="value">${f.wght}</span></div>`;
+  html += `<div class="detail-row"><span class="label">usWidthClass</span><span class="value">${f.wdth} (${widthName(f.wdth)})</span></div>`;
+  html += `<div class="detail-row"><span class="label">fsSelection</span><span class="value">${fmtFsSel(f.fsSel)} <span style="color:var(--text-tertiary)">(0x${f.fsSel.toString(16).padStart(4,'0')})</span></span></div>`;
+  html += `<div class="detail-row"><span class="label">macStyle</span><span class="value">${fmtMacStyle(f.macStyle)}</span></div>`;
+  html += `<div class="detail-row"><span class="label">STAT table</span><span class="value">${f.hasStat ? '<span class="issue-badge issue-ok">present</span>' : '<span class="issue-badge issue-warn">absent</span>'}</span></div>`;
+  if (f.version) html += `<div class="detail-row"><span class="label">Version</span><span class="value">${esc(f.version)}</span></div>`;
+  html += `</div>`;
+
+  // RIBBI analysis
+  html += `<div class="detail-section"><h4>RIBBI Group</h4>`;
+  html += `<div class="detail-row"><span class="label">RIBBI Family</span><span class="value">${esc(f.id1)}</span></div>`;
+  html += `<div class="detail-row"><span class="label">RIBBI Style</span><span class="value">${esc(f.id2)}</span></div>`;
+
+  // Find siblings
+  const siblings = allFonts.filter(x => x.id1 === f.id1 && !x.error);
+  html += `<div class="detail-row"><span class="label">Siblings</span><span class="value">${siblings.map(s => esc(s.id2)).join(', ')}</span></div>`;
+  html += `</div>`;
+
+  html += `</div>`;
+
+  panel.innerHTML = html;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDetail();
+});
+
+// ═══════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+function fmtFsSel(v) {
+  const flags = [];
+  if (v & 0x01) flags.push('ITALIC');
+  if (v & 0x20) flags.push('BOLD');
+  if (v & 0x40) flags.push('REGULAR');
+  if (v & 0x80) flags.push('TYPO');
+  if (v & 0x100) flags.push('WWS');
+  return flags.join('+') || '(none)';
+}
+
+function fmtMacStyle(v) {
+  const flags = [];
+  if (v & 1) flags.push('Bold');
+  if (v & 2) flags.push('Italic');
+  return flags.join('+') || '—';
+}
+
+function widthName(w) {
+  const m = {1:'Ultra-condensed',2:'Extra-condensed',3:'Condensed',4:'Semi-condensed',
+             5:'Normal',6:'Semi-expanded',7:'Expanded',8:'Extra-expanded',9:'Ultra-expanded'};
+  return m[w] || '?';
+}
+
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.view-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === v);
+  });
+  render();
+}
+
+function clearAll() {
+  allFonts = [];
+  faceCounter = 0;
+  loadedFaces = {};
+  document.getElementById('content').innerHTML = '';
+  document.getElementById('statsBar').style.display = 'none';
+  dz.classList.remove('has-fonts');
+}
+
+function exportReport() {
+  if (!allFonts.length) return;
+  const headers = ['fileName','id1','id2','id4','id6','id16','id17','id21','id22','wght','wdth','fsSel','macStyle','hasStat','issues'];
+  let csv = headers.join(',') + '\n';
+  for (const f of allFonts) {
+    csv += headers.map(h => {
+      let v = f[h];
+      if (h === 'fsSel') v = '0x' + (v||0).toString(16).padStart(4,'0');
+      if (h === 'macStyle') v = '0x' + (v||0).toString(16).padStart(4,'0');
+      if (h === 'issues') v = (f.issues || []).join('; ');
+      if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) v = '"' + v.replace(/"/g,'""') + '"';
+      return v;
+    }).join(',') + '\n';
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'font_inspection_report.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
