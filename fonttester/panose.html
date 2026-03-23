@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PANOSE Editor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/opentype.js/1.3.4/opentype.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0e12;
+    --surface: #16161d;
+    --surface2: #1e1e28;
+    --border: #2a2a38;
+    --border-hover: #3a3a50;
+    --text: #e0dfe6;
+    --text-dim: #8887a0;
+    --accent: #6e8efb;
+    --accent-hover: #8aa4ff;
+    --accent-dim: rgba(110,142,251,0.12);
+    --red: #fb6e6e;
+    --green: #6efba0;
+    --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', monospace;
+    --sans: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .app { max-width: 1400px; margin: 0 auto; padding: 32px 24px; }
+  header { margin-bottom: 32px; }
+  header h1 { font-family: var(--mono); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--text-dim); font-size: 13px; margin-top: 6px; }
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 48px 24px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: var(--surface); position: relative;
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: var(--accent-dim); }
+  .dropzone-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.5; }
+  .dropzone-text { color: var(--text-dim); font-size: 14px; }
+  .dropzone-text strong { color: var(--accent); cursor: pointer; }
+  .dropzone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .dropzone-formats { margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); opacity: 0.6; }
+  .fonts-container { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .font-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .font-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  .font-card-name { font-family: var(--mono); font-size: 14px; font-weight: 600; }
+  .font-card-meta { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+  .font-card-actions { display: flex; gap: 8px; align-items: center; }
+  .font-preview {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+  }
+  .font-preview-text {
+    font-size: 48px; line-height: 1.25; color: var(--text);
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .panose-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1px; background: var(--border); padding: 1px;
+  }
+  .panose-cell { background: var(--surface); padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .panose-cell-label { font-size: 11px; font-family: var(--mono); color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .panose-cell-label .digit-index { color: var(--accent); margin-right: 4px; }
+  .panose-cell select {
+    background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 7px 10px; font-family: var(--mono); font-size: 12px;
+    cursor: pointer; width: 100%; outline: none; transition: border-color 0.15s;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238887a0'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+  }
+  .panose-cell select:hover { border-color: var(--border-hover); }
+  .panose-cell select:focus { border-color: var(--accent); }
+  .panose-cell select.changed { border-color: var(--accent); background-color: var(--accent-dim); }
+  .panose-cell select option { background: var(--surface2); color: var(--text); }
+  .panose-cell select option:checked { background: var(--accent-dim); color: var(--text); }
+  .panose-cell select.changed option:checked { background: var(--accent); color: #0e0e12; }
+  .panose-raw {
+    padding: 12px 18px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 12px;
+  }
+  .panose-raw-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+  .panose-raw-value { color: var(--accent); letter-spacing: 0.1em; }
+  .panose-raw-value.modified { color: var(--green); }
+  .btn {
+    font-family: var(--mono); font-size: 12px; padding: 7px 14px; border-radius: 6px;
+    border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--border-hover); background: var(--border); }
+  .btn-accent { background: var(--accent); border-color: var(--accent); color: #0e0e12; font-weight: 600; }
+  .btn-accent:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-danger { color: var(--red); }
+  .btn-danger:hover { background: rgba(251,110,110,0.1); border-color: var(--red); }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 24px; padding: 12px 0;
+  }
+  .toolbar-info { font-size: 13px; color: var(--text-dim); }
+  .status-badge {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    padding: 3px 8px; border-radius: 4px; margin-left: 8px;
+  }
+  .status-modified { background: rgba(110,251,160,0.12); color: var(--green); }
+  .status-original { background: rgba(136,135,160,0.12); color: var(--text-dim); }
+  .error-msg {
+    background: rgba(251,110,110,0.1); border: 1px solid rgba(251,110,110,0.25);
+    border-radius: 8px; padding: 12px 16px; margin-top: 12px;
+    font-size: 13px; color: var(--red); font-family: var(--mono);
+  }
+  @media (max-width: 768px) {
+    .panose-grid { grid-template-columns: 1fr; }
+    .font-card-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+    .font-preview-text { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1><span>PANOSE</span> Editor</h1>
+    <p>Drop OTF/TTF font files to inspect and edit PANOSE classification values in the OS/2 table</p>
+  </header>
+  <div class="dropzone" id="dropzone">
+    <div class="dropzone-icon">⬡</div>
+    <div class="dropzone-text">Drag &amp; drop font files here or <strong>browse</strong></div>
+    <div class="dropzone-formats">.otf · .ttf</div>
+    <input type="file" id="fileInput" multiple accept=".otf,.ttf">
+  </div>
+  <div id="errors"></div>
+  <div id="toolbar" style="display:none" class="toolbar">
+    <div class="toolbar-info"><span id="fontCount">0</span> font(s) loaded</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-sm" onclick="resetAll()">Reset All</button>
+      <button class="btn btn-sm btn-danger" onclick="clearAll()">Clear All</button>
+      <button class="btn btn-accent" onclick="downloadAll()">Download All Modified</button>
+    </div>
+  </div>
+  <div class="fonts-container" id="fontsContainer"></div>
+</div>
+
+<script>
+const PREVIEW_TEXT = 'HOAhoa Hamburgefontsiv';
+
+const PANOSE_LABELS_BY_KIND = {
+  // Family Kind labels (digit 0) are always the same
+  0: 'Family Kind',
+  // Digits 1-9 depend on Family Kind
+  2: ['Serif Style','Weight','Proportion','Contrast','Stroke Variation','Arm Style','Letterform','Midline','X-height'],
+  3: ['Tool Kind','Weight','Spacing','Aspect Ratio','Contrast','Topology','Form','Finials','X-ascent'],
+  4: ['Class','Weight','Aspect','Contrast','Serif Variant','Treatment','Lining','Topology','Range of Characters'],
+  5: ['Kind','Weight','Spacing','Aspect Ratio & Contrast','Aspect Ratio of Ch 94','Aspect Ratio of Ch 119','Aspect Ratio of Ch 157','Aspect Ratio of Ch 163','Aspect Ratio of Ch 211'],
+  _default: ['Digit 2','Digit 3','Digit 4','Digit 5','Digit 6','Digit 7','Digit 8','Digit 9','Digit 10']
+};
+
+// Family Kind (digit 0) — same for all
+const PANOSE_D0 = { 0:'Any', 1:'No Fit', 2:'Latin Text', 3:'Latin Hand Written', 4:'Latin Decorative', 5:'Latin Symbol' };
+// Kind 2: Latin Text
+const PANOSE_K2 = {
+  1: { 0:'Any',1:'No Fit',2:'Cove',3:'Obtuse Cove',4:'Square Cove',5:'Obtuse Square Cove',6:'Square',7:'Thin',8:'Oval',9:'Exaggerated',10:'Triangle',11:'Normal Sans',12:'Obtuse Sans',13:'Perpendicular Sans',14:'Flared',15:'Rounded' },
+  2: { 0:'Any',1:'No Fit',2:'Very Light',3:'Light',4:'Thin',5:'Book',6:'Medium',7:'Demi',8:'Bold',9:'Heavy',10:'Black',11:'Extra Black / Nord' },
+  3: { 0:'Any',1:'No Fit',2:'Old Style',3:'Modern',4:'Even Width',5:'Extended',6:'Condensed',7:'Very Condensed',8:'Very Extended',9:'Monospaced' },
+  4: { 0:'Any',1:'No Fit',2:'None',3:'Very Low',4:'Low',5:'Medium Low',6:'Medium',7:'Medium High',8:'High',9:'Very High' },
+  5: { 0:'Any',1:'No Fit',2:'No Variation',3:'Gradual/Diagonal',4:'Gradual/Transitional',5:'Gradual/Vertical',6:'Gradual/Horizontal',7:'Rapid/Vertical',8:'Rapid/Horizontal',9:'Instant/Vertical',10:'Instant/Horizontal' },
+  6: { 0:'Any',1:'No Fit',2:'Straight Arms/Horiz',3:'Straight Arms/Wedge',4:'Straight Arms/Vert',5:'Straight Arms/Single Serif',6:'Straight Arms/Double Serif',7:'Non-Straight/Horiz',8:'Non-Straight/Wedge',9:'Non-Straight/Vert',10:'Non-Straight/Single Serif',11:'Non-Straight/Double Serif' },
+  7: { 0:'Any',1:'No Fit',2:'Normal/Contact',3:'Normal/Weighted',4:'Normal/Boxed',5:'Normal/Flattened',6:'Normal/Rounded',7:'Normal/Off Center',8:'Normal/Square',9:'Oblique/Contact',10:'Oblique/Weighted',11:'Oblique/Boxed',12:'Oblique/Flattened',13:'Oblique/Rounded',14:'Oblique/Off Center',15:'Oblique/Square' },
+  8: { 0:'Any',1:'No Fit',2:'Standard/Trimmed',3:'Standard/Pointed',4:'Standard/Serifed',5:'High/Trimmed',6:'High/Pointed',7:'High/Serifed',8:'Constant/Trimmed',9:'Constant/Pointed',10:'Constant/Serifed',11:'Low/Trimmed',12:'Low/Pointed',13:'Low/Serifed' },
+  9: { 0:'Any',1:'No Fit',2:'Constant/Small',3:'Constant/Standard',4:'Constant/Large',5:'Ducking/Small',6:'Ducking/Standard',7:'Ducking/Large' }
+};
+// Kind 3: Latin Hand Written
+const PANOSE_K3 = {
+  1: { 0:'Any',1:'No Fit',2:'Flat Nib',3:'Pressure Point',4:'Engraved',5:'Ball (pointed)',6:'Ball (round)',7:'Stroke',8:'Mixed',9:'Broad Nib' },
+  2: { 0:'Any',1:'No Fit',2:'Very Light',3:'Light',4:'Thin',5:'Book',6:'Medium',7:'Demi',8:'Bold',9:'Heavy',10:'Black',11:'Extra Black' },
+  3: { 0:'Any',1:'No Fit',2:'Proportional Spaced',3:'Monospaced' },
+  4: { 0:'Any',1:'No Fit',2:'Very Condensed',3:'Condensed',4:'Normal',5:'Expanded',6:'Very Expanded' },
+  5: { 0:'Any',1:'No Fit',2:'None',3:'Very Low',4:'Low',5:'Medium Low',6:'Medium',7:'Medium High',8:'High',9:'Very High' },
+  6: { 0:'Any',1:'No Fit',2:'Roman Disconnected',3:'Roman Trailing',4:'Roman Connected',5:'Cursive Disconnected',6:'Cursive Trailing',7:'Cursive Connected',8:'Blackletter Disconnected',9:'Blackletter Trailing',10:'Blackletter Connected' },
+  7: { 0:'Any',1:'No Fit',2:'Upright / No Wrapping',3:'Upright / Some Wrapping',4:'Upright / More Wrapping',5:'Upright / Extreme Wrapping',6:'Oblique / No Wrapping',7:'Oblique / Some Wrapping',8:'Oblique / More Wrapping',9:'Oblique / Extreme Wrapping',10:'Exaggerated / No Wrapping',11:'Exaggerated / Some Wrapping',12:'Exaggerated / More Wrapping',13:'Exaggerated / Extreme Wrapping' },
+  8: { 0:'Any',1:'No Fit',2:'None / No loops',3:'None / Closed loops',4:'None / Open loops',5:'Sharp / No loops',6:'Sharp / Closed loops',7:'Sharp / Open loops',8:'Tapered / No loops',9:'Tapered / Closed loops',10:'Tapered / Open loops',11:'Round / No loops',12:'Round / Closed loops',13:'Round / Open loops' },
+  9: { 0:'Any',1:'No Fit',2:'Very Low',3:'Low',4:'Medium',5:'High',6:'Very High' }
+};
+// Kind 4: Latin Decorative
+const PANOSE_K4 = {
+  1: { 0:'Any',1:'No Fit',2:'Derivative',3:'Non-standard Topology',4:'Non-standard Elements',5:'Non-standard Aspect',6:'Initials',7:'Cartoon',8:'Picture Stems',9:'Ornamented',10:'Text and Background',11:'Collage',12:'Montage' },
+  2: { 0:'Any',1:'No Fit',2:'Very Light',3:'Light',4:'Thin',5:'Book',6:'Medium',7:'Demi',8:'Bold',9:'Heavy',10:'Black',11:'Extra Black' },
+  3: { 0:'Any',1:'No Fit',2:'Super Condensed',3:'Very Condensed',4:'Condensed',5:'Normal',6:'Extended',7:'Very Extended',8:'Super Extended',9:'Monospaced' },
+  4: { 0:'Any',1:'No Fit',2:'None',3:'Very Low',4:'Low',5:'Medium Low',6:'Medium',7:'Medium High',8:'High',9:'Very High',10:'Horizontal Low',11:'Horizontal Medium',12:'Horizontal High',13:'Broken' },
+  5: { 0:'Any',1:'No Fit',2:'Cove',3:'Obtuse Cove',4:'Square Cove',5:'Obtuse Square Cove',6:'Square',7:'Thin',8:'Oval',9:'Exaggerated',10:'Triangle',11:'Normal Sans',12:'Obtuse Sans',13:'Perpendicular Sans',14:'Flared',15:'Rounded' },
+  6: { 0:'Any',1:'No Fit',2:'None / Standard Solid Fill',3:'White / No Fill',4:'Patterned Fill',5:'Complex Fill',6:'Shaped Fill',7:'Drawn / Distressed' },
+  7: { 0:'Any',1:'No Fit',2:'None',3:'Inline',4:'Outline',5:'Engraved (Multiple Lines)',6:'Shadow',7:'Relief',8:'Backdrop' },
+  8: { 0:'Any',1:'No Fit',2:'Standard',3:'Square',4:'Multiple Segment',5:'Deco (Art Nouveau) Warp',6:'Uneven Weighting',7:'Diverse Arms',8:'Diverse Forms',9:'Lombardic Forms',10:'Upper Case in Lower Case',11:'Implied Topology',12:'Horseshoe E and A',13:'Cursive',14:'Blackletter',15:'Swash Variance' },
+  9: { 0:'Any',1:'No Fit',2:'Extended Collection',3:'Litterals',4:'No Lower Case',5:'Small Caps' }
+};
+// Kind 5: Latin Symbol
+const PANOSE_K5 = {
+  1: { 0:'Any',1:'No Fit',2:'Montages',3:'Pictures',4:'Shapes',5:'Scientific',6:'Music',7:'Expert',8:'Patterns',9:'Boarders',10:'Icons',11:'Logos',12:'Industry specific' },
+  2: { 0:'Any',1:'No Fit' },
+  3: { 0:'Any',1:'No Fit',2:'Proportional Spaced',3:'Monospaced' },
+  4: { 0:'Any',1:'No Fit' },
+  5: { 0:'Any',1:'No Fit',2:'No Width',3:'Exceptionally Wide',4:'Super Wide',5:'Very Wide',6:'Wide',7:'Normal',8:'Narrow',9:'Very Narrow' },
+  6: { 0:'Any',1:'No Fit',2:'No Fit (Subset)',3:'Commodity',4:'Modern',5:'Industrial',6:'Classic',7:'Medieval',8:'Military',9:'Astrology / Astronomy',10:'Zodiac',11:'Electronic',12:'Dingbats',13:'Typographic' },
+  7: { 0:'Any',1:'No Fit' },
+  8: { 0:'Any',1:'No Fit',2:'No Width',3:'Exceptionally Wide',4:'Super Wide',5:'Very Wide',6:'Wide',7:'Normal',8:'Narrow',9:'Very Narrow' },
+  9: { 0:'Any',1:'No Fit',2:'Uncased',3:'Cased',4:'All Caps' }
+};
+
+const PANOSE_BY_KIND = { 2: PANOSE_K2, 3: PANOSE_K3, 4: PANOSE_K4, 5: PANOSE_K5 };
+
+let fonts = [];
+let fontFaceCounter = 0;
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fontsContainer = document.getElementById('fontsContainer');
+const errorsDiv = document.getElementById('errors');
+const toolbar = document.getElementById('toolbar');
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', e => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', e => { handleFiles(e.target.files); fileInput.value = ''; });
+
+async function handleFiles(fileList) {
+  errorsDiv.innerHTML = '';
+  for (const file of fileList) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['otf', 'ttf'].includes(ext)) {
+      showError(`Skipped "${file.name}" — only OTF/TTF supported`);
+      continue;
+    }
+    try {
+      const ab = await file.arrayBuffer();
+      const font = opentype.parse(ab);
+      if (!font || !font.tables || !font.tables.os2) {
+        showError(`"${file.name}" — no OS/2 table found`);
+        continue;
+      }
+      let panose = [0,0,0,0,0,0,0,0,0,0];
+      if (font.tables.os2.panose) {
+        panose = Array.from(font.tables.os2.panose).slice(0, 10);
+        while (panose.length < 10) panose.push(0);
+      }
+      fontFaceCounter++;
+      const familyName = `panose-preview-${fontFaceCounter}`;
+      const mime = ext === 'otf' ? 'font/otf' : 'font/ttf';
+      const blob = new Blob([ab], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      const ff = new FontFace(familyName, `url(${blobUrl})`);
+      await ff.load();
+      document.fonts.add(ff);
+      fonts.push({
+        id: Date.now() + '_' + Math.random().toString(36).slice(2,8),
+        name: font.names.postScriptName?.en || font.names.fullName?.en || file.name,
+        fileName: file.name,
+        format: ext,
+        font, originalPanose: [...panose], currentPanose: [...panose],
+        arrayBuffer: ab, previewFamily: familyName, blobUrl
+      });
+    } catch (err) {
+      showError(`Error parsing "${file.name}": ${err.message}`);
+    }
+  }
+  render();
+}
+
+function showError(msg) {
+  const div = document.createElement('div');
+  div.className = 'error-msg'; div.textContent = msg;
+  errorsDiv.appendChild(div);
+  setTimeout(() => div.remove(), 6000);
+}
+function isModified(e) { return e.originalPanose.some((v,i) => v !== e.currentPanose[i]); }
+function panoseStr(a) { return a.join(' '); }
+function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function getDigitLabel(digitIndex, familyKind) {
+  if (digitIndex === 0) return PANOSE_LABELS_BY_KIND[0];
+  const labels = PANOSE_LABELS_BY_KIND[familyKind] || PANOSE_LABELS_BY_KIND._default;
+  return labels[digitIndex - 1] || `Digit ${digitIndex + 1}`;
+}
+
+function getDigitValues(digitIndex, familyKind) {
+  if (digitIndex === 0) return PANOSE_D0;
+  const kindMap = PANOSE_BY_KIND[familyKind];
+  if (kindMap && kindMap[digitIndex]) return kindMap[digitIndex];
+  return { 0: 'Any', 1: 'No Fit' }; // fallback
+}
+
+function getValueLabel(digitIndex, value, familyKind) {
+  const map = getDigitValues(digitIndex, familyKind);
+  return (map && map[value] !== undefined) ? `${value} — ${map[value]}` : `${value}`;
+}
+
+function getMaxValue(digitIndex, familyKind) {
+  const map = getDigitValues(digitIndex, familyKind);
+  const keys = Object.keys(map).map(Number);
+  return keys.length > 0 ? Math.max(...keys) : 15;
+}
+
+function render() {
+  toolbar.style.display = fonts.length > 0 ? 'flex' : 'none';
+  document.getElementById('fontCount').textContent = fonts.length;
+  fontsContainer.innerHTML = '';
+  for (const entry of fonts) {
+    const card = document.createElement('div');
+    card.className = 'font-card';
+    const modified = isModified(entry);
+    const badge = modified
+      ? '<span class="status-badge status-modified">modified</span>'
+      : '<span class="status-badge status-original">original</span>';
+    const pf = `'${entry.previewFamily}', sans-serif`;
+    const familyKind = entry.currentPanose[0];
+
+    card.innerHTML = `
+      <div class="font-card-header">
+        <div>
+          <span class="font-card-name">${escHtml(entry.name)}</span>${badge}
+          <div class="font-card-meta">${escHtml(entry.fileName)} · ${entry.format.toUpperCase()}</div>
+        </div>
+        <div class="font-card-actions">
+          <button class="btn btn-sm" onclick="resetFont('${entry.id}')">Reset</button>
+          <button class="btn btn-accent btn-sm" onclick="downloadFont('${entry.id}')">Download${modified?' ✱':''}</button>
+          <button class="btn btn-sm btn-danger" onclick="removeFont('${entry.id}')">✕</button>
+        </div>
+      </div>
+      <div class="font-preview">
+        <div class="font-preview-text" style="font-family:${pf}">${PREVIEW_TEXT}</div>
+      </div>
+      <div class="panose-grid" id="grid-${entry.id}"></div>
+      <div class="panose-raw">
+        <span class="panose-raw-label">PANOSE</span>
+        <span class="panose-raw-value ${modified?'modified':''}">${panoseStr(entry.currentPanose)}</span>
+        ${modified?`<span style="color:var(--text-dim);font-size:11px">was: ${panoseStr(entry.originalPanose)}</span>`:''}
+      </div>
+    `;
+    fontsContainer.appendChild(card);
+
+    const grid = card.querySelector(`#grid-${entry.id}`);
+    for (let i = 0; i < 10; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'panose-cell';
+      const changed = entry.currentPanose[i] !== entry.originalPanose[i];
+      const maxVal = getMaxValue(i, familyKind);
+      let opts = '';
+      for (let v = 0; v <= maxVal; v++) {
+        opts += `<option value="${v}" ${v===entry.currentPanose[i]?'selected':''}>${getValueLabel(i,v,familyKind)}</option>`;
+      }
+      cell.innerHTML = `
+        <div class="panose-cell-label"><span class="digit-index">${i+1}</span>${getDigitLabel(i, familyKind)}</div>
+        <select class="${changed?'changed':''}" data-font="${entry.id}" data-digit="${i}">${opts}</select>
+      `;
+      grid.appendChild(cell);
+    }
+    grid.querySelectorAll('select').forEach(sel => {
+      sel.addEventListener('change', e => {
+        const f = fonts.find(f => f.id === e.target.dataset.font);
+        if (!f) return;
+        const digit = parseInt(e.target.dataset.digit);
+        f.currentPanose[digit] = parseInt(e.target.value);
+        render(); // re-render to update labels if Family Kind changed
+      });
+    });
+  }
+}
+
+function removeFont(id) {
+  const f = fonts.find(f => f.id === id);
+  if (f && f.blobUrl) URL.revokeObjectURL(f.blobUrl);
+  fonts = fonts.filter(f => f.id !== id);
+  render();
+}
+function resetFont(id) {
+  const f = fonts.find(f => f.id === id);
+  if (f) { f.currentPanose = [...f.originalPanose]; render(); }
+}
+function resetAll() { fonts.forEach(f => f.currentPanose = [...f.originalPanose]); render(); }
+function clearAll() {
+  fonts.forEach(f => { if (f.blobUrl) URL.revokeObjectURL(f.blobUrl); });
+  fonts = []; render();
+}
+function downloadAll() {
+  const mod = fonts.filter(isModified);
+  if (mod.length === 0) { showError('No modified fonts to download'); return; }
+  mod.forEach(f => downloadFont(f.id));
+}
+
+function downloadFont(id) {
+  const entry = fonts.find(f => f.id === id);
+  if (!entry) return;
+  // Always use binary patch for reliability (opentype.js toArrayBuffer can lose data)
+  try {
+    const patched = patchPanoseBinary(entry.arrayBuffer, entry.currentPanose);
+    triggerDownload(new Blob([patched], { type: 'application/octet-stream' }), entry.fileName);
+  } catch (err) {
+    showError(`Patch failed for "${entry.name}": ${err.message}`);
+  }
+}
+
+function patchPanoseBinary(arrayBuffer, panose) {
+  const buf = new Uint8Array(arrayBuffer.slice(0));
+  const dv = new DataView(buf.buffer);
+  const numTables = dv.getUint16(4);
+
+  // Find OS/2 and head table offsets
+  let os2Offset = -1, os2Length = -1, os2RecOff = -1;
+  let headOffset = -1, headLength = -1, headRecOff = -1;
+
+  for (let i = 0; i < numTables; i++) {
+    const recOff = 12 + i * 16;
+    const tag = String.fromCharCode(buf[recOff], buf[recOff+1], buf[recOff+2], buf[recOff+3]);
+    if (tag === 'OS/2') {
+      os2RecOff = recOff;
+      os2Offset = dv.getUint32(recOff + 8);
+      os2Length = dv.getUint32(recOff + 12);
+    }
+    if (tag === 'head') {
+      headRecOff = recOff;
+      headOffset = dv.getUint32(recOff + 8);
+      headLength = dv.getUint32(recOff + 12);
+    }
+  }
+  if (os2Offset < 0) throw new Error('OS/2 table not found');
+
+  // Patch PANOSE at offset 32 in OS/2
+  for (let i = 0; i < 10; i++) buf[os2Offset + 32 + i] = panose[i];
+
+  // Recalculate OS/2 table checksum
+  dv.setUint32(os2RecOff + 4, calcTableChecksum(buf, os2Offset, os2Length));
+
+  // Recalculate head.checkSumAdjustment
+  if (headOffset >= 0) {
+    // Zero out checkSumAdjustment (at head+8) before calculating
+    dv.setUint32(headOffset + 8, 0);
+    // Recalculate head table checksum first
+    dv.setUint32(headRecOff + 4, calcTableChecksum(buf, headOffset, headLength));
+    // Calculate checksum of entire file
+    const fileChecksum = calcTableChecksum(buf, 0, buf.length);
+    // head.checkSumAdjustment = 0xB1B0AFBA - fileChecksum
+    dv.setUint32(headOffset + 8, (0xB1B0AFBA - fileChecksum) >>> 0);
+    // Recalculate head table checksum again with the new checkSumAdjustment
+    dv.setUint32(headRecOff + 4, calcTableChecksum(buf, headOffset, headLength));
+  }
+  return buf.buffer;
+}
+
+function calcTableChecksum(buf, offset, length) {
+  const dv = new DataView(buf.buffer);
+  let sum = 0;
+  const nLongs = Math.ceil(length / 4);
+  for (let i = 0; i < nLongs; i++) {
+    const pos = offset + i * 4;
+    if (pos + 4 <= buf.length) {
+      sum = (sum + dv.getUint32(pos)) >>> 0;
+    } else {
+      let val = 0;
+      for (let b = 0; b < 4; b++) val = (val << 8) | (pos + b < buf.length ? buf[pos + b] : 0);
+      sum = (sum + val) >>> 0;
+    }
+  }
+  return sum;
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
