@@ -144,6 +144,7 @@
       <button class="btn btn-sm" onclick="resetAll()">Reset All</button>
       <button class="btn btn-sm btn-danger" onclick="clearAll()">Clear All</button>
       <button class="btn btn-accent" onclick="downloadAll()">Download All Modified</button>
+      <button class="btn" onclick="downloadScheme()">Download PANOSE scheme</button>
     </div>
   </div>
   <div class="fonts-container" id="fontsContainer"></div>
@@ -391,6 +392,25 @@ function downloadAll() {
   const mod = fonts.filter(isModified);
   if (mod.length === 0) { showError('No modified fonts to download'); return; }
   mod.forEach(f => downloadFont(f.id));
+}
+
+// Export a PANOSE scheme: one line per loaded font, keyed by PostScript name,
+// followed by the 10 PANOSE bytes. Consumed by postprocess_group_by_family.py.
+function downloadScheme() {
+  if (fonts.length === 0) { showError('No fonts loaded'); return; }
+  const lines = [
+    '# DIN 2014 PANOSE scheme — applied by postprocess_group_by_family.py (--panose)',
+    '# PSName  familyType serifStyle weight proportion contrast strokeVariation armStyle letterform midline xHeight',
+    '# alias form (take values from another face):  @TargetPSName = SourcePSName',
+  ];
+  const skipped = [];
+  fonts.forEach(e => {
+    const ps = e.font.names.postScriptName && e.font.names.postScriptName.en;
+    if (!ps) { skipped.push(e.name); return; }
+    lines.push(ps.padEnd(28) + ' ' + e.currentPanose.join(' '));
+  });
+  if (skipped.length) showError('No PostScript name, skipped: ' + skipped.join(', '));
+  triggerDownload(new Blob([lines.join('\n') + '\n'], { type: 'text/plain' }), 'panose.txt');
 }
 
 function downloadFont(id) {
