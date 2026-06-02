@@ -395,11 +395,11 @@ function downloadAll() {
 }
 
 // Export a PANOSE scheme: one line per loaded font, keyed by PostScript name,
-// followed by the 10 PANOSE bytes. Consumed by postprocess_group_by_family.py.
+// followed by the 10 PANOSE bytes. Consumed by postprocess.py.
 function downloadScheme() {
   if (fonts.length === 0) { showError('No fonts loaded'); return; }
   const lines = [
-    '# DIN 2014 PANOSE scheme — applied by postprocess_group_by_family.py (--panose)',
+    '# DIN 2014 PANOSE scheme — applied by postprocess.py (--panose)',
     '# PSName  familyType serifStyle weight proportion contrast strokeVariation armStyle letterform midline xHeight',
     '# alias form (take values from another face):  @TargetPSName = SourcePSName',
   ];
