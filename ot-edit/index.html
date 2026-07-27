@@ -726,10 +726,16 @@ function formatHeadValue(field, val) {
     case 'fontRevision': return typeof val === 'number' ? val.toFixed(3) : String(val);
     case 'flags': return `${val} \u2014 ${decodeBitfield(val, HEAD_FLAGS_BITS)}`;
     case 'macStyle': return `${val} \u2014 ${decodeBitfield(val, MACSTYLE_BITS)}`;
-    case 'created': case 'modified':
-      if (val instanceof Date) return val.toISOString().replace('T',' ').replace(/\.000Z$/,' UTC');
-      try { return new Date(val).toISOString().replace('T',' ').replace(/\.000Z$/,' UTC'); }
-      catch(e) { return String(val); }
+    case 'created': case 'modified': {
+      // opentype.js returns LONGDATETIME as Unix *seconds* (a Number),
+      // our binary reader returns a Date. Handle both.
+      let d;
+      if (val instanceof Date) d = val;
+      else if (typeof val === 'number') d = new Date(val * 1000);
+      else d = new Date(val);
+      if (isNaN(d.getTime())) return String(val);
+      return d.toISOString().replace('T',' ').replace(/\.000Z$/,' UTC');
+    }
     case 'fontDirectionHint': {
       const h = {0:'Mixed',1:'Left-to-right only',2:'Left-to-right + neutrals','-1':'Right-to-left only','-2':'Right-to-left + neutrals'};
       return `${val}` + (h[val] ? ` (${h[val]})` : '');
@@ -773,6 +779,14 @@ async function handleFiles(fileList) {
           entry.binaryData = parsed.data;
           if (parsed.data.has('name'))
             entry.binaryNameRecords = parseBinaryNameTable(parsed.data.get('name'));
+          // Prefer exact 64-bit dates from the binary head table:
+          // opentype.js only reads the low 32 bits of LONGDATETIME.
+          if (parsed.data.has('head') && entry.headTable) {
+            const hb = parsed.data.get('head');
+            const hdv = new DataView(hb.buffer, hb.byteOffset, hb.byteLength);
+            entry.headTable.created  = readLONGDATETIME(hdv, 20);
+            entry.headTable.modified = readLONGDATETIME(hdv, 28);
+          }
         }
       } catch (e) { console.warn('Binary parse failed for ' + file.name, e); }
       fonts.push(entry);
