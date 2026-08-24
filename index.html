@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>typedev — font tools</title>
+<meta name="description" content="Type design tools that run in your browser: proof, inspect and repair OTF, TTF, WOFF and WOFF2 files. Everything runs client-side — the font file never leaves your machine.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23171a21'/%3E%3Cpath d='M7 9h18v3.4h-7.1V25h-3.8V12.4H7z' fill='%234a90d9'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=Recursive:slnt,wght,CASL,CRSV,MONO@-15..0,300..1000,0..1,0..1,0..1&display=swap">
+<style>
+:root{
+  --ground:#171a21;
+  --panel:#1e222c;
+  --panel-2:#252a36;
+  --rule:#313848;
+  --ink:#e2e6ee;
+  --dim:#8b94a6;
+  --dim-2:#5d6678;
+  --prose-dim:#9aa4b6;
+  --guide:#4a90d9;
+  --mark:#e8a44a;
+
+  --sans:'Recursive','Segoe UI',system-ui,sans-serif;
+  --prose:'Newsreader',Georgia,'Times New Roman',serif;
+
+  --pad:clamp(1.25rem,5vw,4rem);
+  --maxw:1160px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+
+html{-webkit-text-size-adjust:100%}
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-variation-settings:'MONO' 0,'CASL' 0,'wght' 400;
+  font-size:16px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit}
+
+.mono{
+  font-family:var(--sans);
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;
+  font-size:.7rem;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color:var(--dim);
+}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--pad)}
+
+/* ── masthead ─────────────────────────────────────────── */
+.masthead{
+  display:flex;align-items:baseline;justify-content:space-between;
+  gap:1rem;flex-wrap:wrap;
+  padding-top:clamp(1.5rem,4vw,2.5rem);
+}
+.wordmark{
+  font-size:1rem;letter-spacing:.02em;text-transform:none;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 700;
+  color:var(--ink);text-decoration:none;
+}
+.wordmark span{color:var(--guide)}
+
+/* ── hero ─────────────────────────────────────────────── */
+.hero{padding:clamp(3rem,10vw,7rem) 0 clamp(2.5rem,6vw,4rem)}
+.lede{
+  font-size:clamp(2.5rem,7.6vw,5.4rem);
+  line-height:.94;
+  letter-spacing:-.035em;
+  font-variation-settings:'MONO' 0,'CASL' .4,'wght' 800;
+}
+.lede-2{display:flex;align-items:baseline;gap:.45em}
+.baserule{
+  flex:1 1 auto;height:1px;min-width:2rem;background:var(--guide);opacity:.55;
+  transform-origin:left center;animation:draw .8s cubic-bezier(.2,.8,.3,1) .15s both;
+}
+@keyframes draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.baserule-tag{
+  flex:0 0 auto;font-size:.62rem;letter-spacing:.14em;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;
+  text-transform:uppercase;color:var(--guide);opacity:.75;
+}
+.hero-note{
+  font-family:var(--prose);
+  font-size:clamp(1.05rem,1.9vw,1.3rem);
+  line-height:1.55;color:var(--prose-dim);
+  max-width:46ch;margin-top:clamp(1.75rem,4vw,2.5rem);
+}
+.hero-note strong{color:var(--ink);font-weight:600}
+
+/* ── section headers ──────────────────────────────────── */
+.band{padding-bottom:clamp(3rem,7vw,5rem)}
+.band-head{
+  display:flex;align-items:baseline;gap:1rem;
+  padding-bottom:1.5rem;margin-bottom:2rem;
+  border-bottom:1px solid var(--rule);
+}
+.band-title{
+  font-size:clamp(1.25rem,2.6vw,1.7rem);
+  letter-spacing:-.02em;
+  font-variation-settings:'MONO' 0,'CASL' .4,'wght' 700;
+}
+.band-gloss{
+  font-family:var(--prose);font-size:1rem;color:var(--dim);
+  font-style:italic;flex:1 1 12ch;
+}
+
+/* ── tool grid ────────────────────────────────────────── */
+.grid{
+  display:grid;gap:1px;
+  background:var(--rule);
+  border:1px solid var(--rule);
+  border-radius:10px;overflow:hidden;
+  grid-template-columns:1fr;
+}
+@media (min-width:880px){.grid{grid-template-columns:repeat(3,1fr)}}
+.tool{
+  position:relative;
+  background:var(--panel);
+  padding:1.5rem 1.4rem 1.3rem;
+  display:flex;flex-direction:column;gap:.85rem;
+  transition:background .18s ease;
+}
+.tool:hover,.tool:focus-within{background:var(--panel-2)}
+.tool:hover .spec,.tool:focus-within .spec{border-color:rgba(74,144,217,.45)}
+
+.tool-title{font-size:1.1rem;letter-spacing:-.015em;font-variation-settings:'MONO' 0,'CASL' .25,'wght' 700}
+.tool-title a{text-decoration:none;color:var(--ink)}
+.tool-title a::after{content:'';position:absolute;inset:0}
+.tool:hover .tool-title a,.tool-title a:focus-visible{color:var(--guide)}
+.tool-title a:focus-visible{outline:2px solid var(--guide);outline-offset:4px;border-radius:2px}
+
+.tool-desc{
+  font-family:var(--prose);
+  font-size:1rem;line-height:1.5;color:var(--prose-dim);
+  flex:1 1 auto;
+}
+.tool-note{
+  font-size:.66rem;line-height:1.6;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 450;
+  color:var(--mark);
+  border-left:2px solid rgba(232,164,74,.35);
+  padding-left:.65rem;
+}
+.tool-foot{
+  display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;
+  padding-top:.9rem;border-top:1px solid var(--rule);
+}
+.fmt{font-size:.66rem;letter-spacing:.1em}
+.tag{
+  flex:0 0 auto;font-size:.62rem;letter-spacing:.09em;text-transform:uppercase;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 600;
+  color:var(--mark);border:1px solid rgba(232,164,74,.35);
+  border-radius:99px;padding:.15em .6em;
+}
+.src{
+  margin-left:auto;position:relative;z-index:1;
+  font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;
+  color:var(--dim);text-decoration:none;white-space:nowrap;
+}
+.src:hover,.src:focus-visible{color:var(--guide)}
+
+/* ── specimens: each one is a miniature of the tool's own output ── */
+.spec{
+  height:88px;border-radius:6px;background:var(--ground);
+  border:1px solid var(--rule);
+  padding:.7rem .8rem;overflow:hidden;
+  transition:border-color .18s ease;
+  display:flex;flex-direction:column;justify-content:center;gap:.4rem;
+}
+.spec-label{
+  font-size:.56rem;letter-spacing:.14em;text-transform:uppercase;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;
+  color:var(--dim-2);
+}
+.hl{color:var(--mark)}
+
+/* 1 · font tester — a size waterfall down to where hinting decides the pixel */
+.s-fall{
+  display:flex;align-items:baseline;gap:.55rem;
+  font-family:var(--prose);color:var(--ink);white-space:nowrap;overflow:hidden;
+}
+.s-fall span:nth-child(1){font-size:22px}
+.s-fall span:nth-child(2){font-size:15px}
+.s-fall span:nth-child(3){font-size:11px}
+.s-fall span:nth-child(4){font-size:8px;color:var(--dim)}
+
+/* 2 · fea-proof — before / after on a real word */
+.s-fea{display:grid;grid-template-columns:auto 1fr;gap:.15rem .8rem;align-items:baseline}
+.s-fea .row{font-family:var(--prose);font-size:1.2rem;color:var(--ink);letter-spacing:.01em}
+.s-fea .off{color:var(--dim-2)}
+.s-fea .key{font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;color:var(--dim-2)}
+.s-fea .key-on{color:var(--mark)}
+
+/* 3 · range proof — the coverage barcode */
+.s-bars{
+  position:relative;height:30px;
+  background-image:repeating-linear-gradient(90deg,var(--guide) 0 2px,transparent 2px 5px);
+  background-repeat:repeat-x;
+}
+.s-bars i{position:absolute;top:0;bottom:0;width:2px}
+.s-bars .miss{background:var(--ground);box-shadow:0 0 0 0 transparent}
+.s-bars .miss::after{content:'';position:absolute;inset:0;background:var(--dim-2);opacity:.45}
+.s-bars .odd{background:var(--ground)}
+.s-bars .odd::after{content:'';position:absolute;inset:0;background:var(--mark)}
+
+/* 4 · ot tables — side-by-side columns, the differing row marked */
+.s-tbl{font-variation-settings:'MONO' 1,'CASL' 0,'wght' 400;font-size:.66rem;line-height:1.75}
+.s-tbl .r{display:grid;grid-template-columns:1fr 3.2rem 3.2rem;gap:.4rem}
+.s-tbl .h{color:var(--dim-2);letter-spacing:.06em}
+.s-tbl .k{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.s-tbl .v{color:var(--ink)}
+.s-tbl .diff .v{color:var(--mark)}
+.s-tbl .diff{background:rgba(232,164,74,.09);border-radius:2px}
+
+/* 5 · panose — the ten digits */
+.s-pan{display:flex;gap:3px}
+.s-pan b{
+  flex:1 1 0;text-align:center;padding:.32rem 0;border-radius:3px;
+  background:var(--panel);border:1px solid var(--rule);
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;
+  font-size:.72rem;color:var(--ink);
+}
+.s-pan b.edit{border-color:var(--mark);color:var(--mark);background:rgba(232,164,74,.1)}
+
+/* 6 · family inspector — the RIBBI slots */
+.s-slots{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.s-slots span{
+  border:1px solid var(--rule);border-radius:3px;padding:.3rem .45rem;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;
+  font-size:.6rem;letter-spacing:.04em;color:var(--dim);
+  display:flex;justify-content:space-between;align-items:center;gap:.3rem;
+}
+.s-slots .filled{color:var(--ink);border-color:var(--dim-2)}
+.s-slots .flag{border-color:rgba(232,164,74,.5);color:var(--mark)}
+.s-slots .empty{color:var(--dim-2);border-style:dashed}
+
+/* ── footer ───────────────────────────────────────────── */
+.foot{border-top:1px solid var(--rule);padding:2.5rem 0 4rem}
+.foot-line{
+  font-family:var(--prose);font-size:1rem;color:var(--prose-dim);
+  max-width:52ch;margin-bottom:1.5rem;
+}
+.foot-line strong{color:var(--ink);font-weight:600}
+.repos{display:grid;gap:.55rem;max-width:60ch}
+.repo{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap}
+.repo dt{flex:0 0 11rem}
+.repo dt a{
+  font-size:.7rem;letter-spacing:.04em;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 600;
+  color:var(--dim);text-decoration:none;
+}
+.repo dt a:hover,.repo dt a:focus-visible{color:var(--guide)}
+.repo dd{
+  font-size:.7rem;letter-spacing:.02em;
+  font-variation-settings:'MONO' 1,'CASL' 0,'wght' 400;
+  color:var(--dim);
+}
+.repos-label{display:block;margin-bottom:1rem}
+@media (max-width:560px){.repo dt{flex:0 0 100%}}
+
+/* the baseline annotation needs room to read as one; below that, drop it */
+@media (max-width:760px){
+  .baserule,.baserule-tag{display:none}
+  .lede-2{gap:0}
+}
+@media (max-width:560px){
+  .lede{font-size:clamp(2.15rem,9vw,3rem)}
+  .spec{height:80px}
+  .tool{padding:1.25rem 1.15rem 1.15rem}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="masthead">
+    <a class="wordmark" href="./">type<span>dev</span></a>
+    <span class="mono">no accounts · no uploads</span>
+  </header>
+
+  <section class="hero">
+    <h1 class="lede">
+      <span class="lede-1">Type design tools</span>
+      <span class="lede-2">
+        <span>in your browser</span>
+        <i class="baserule" aria-hidden="true"></i>
+        <span class="baserule-tag" aria-hidden="true">baseline</span>
+      </span>
+    </h1>
+    <p class="hero-note">
+      Proof, inspect and repair <strong>OTF, TTF, WOFF and WOFF2</strong> files.
+      Parsing, shaping and rebuilding all happen right here in the tab, so licensed and
+      unreleased fonts stay on your machine — <strong>nothing uploads</strong>.
+    </p>
+  </section>
+</div>
+
+<div class="wrap">
+
+  <!-- ══ PROOFING ══════════════════════════════════════ -->
+  <section class="band">
+    <div class="band-head">
+      <h2 class="band-title">Proofing</h2>
+      <p class="band-gloss">what the font draws</p>
+    </div>
+
+    <div class="grid">
+
+      <article class="tool">
+        <div class="spec" aria-hidden="true">
+          <span class="spec-label">waterfall · 72 → 8 pt</span>
+          <div class="s-fall"><span>Hamburg</span><span>Hamburg</span><span>Hamburg</span><span>Hamburg</span></div>
+        </div>
+        <h3 class="tool-title"><a href="./fonttester/">Font Tester</a></h3>
+        <p class="tool-desc">
+          Renders two fonts side by side all the way from 72&nbsp;pt down to 8&nbsp;pt, so you
+          can read how their TrueType or PostScript hinting actually rasterizes. Variable
+          axes and OpenType features stay switchable at every size.
+        </p>
+        <p class="tool-note">
+          Hinting renders in full on Windows, partly on Linux, and not at all on
+          macOS — so proof it on Windows.
+        </p>
+        <div class="tool-foot">
+          <span class="fmt mono">OTF TTF WOFF WOFF2</span>
+          <span class="tag">hinting</span>
+          <a class="src" href="https://github.com/typedev/typedev.github.io">source</a>
+        </div>
+      </article>
+
+      <article class="tool">
+        <div class="spec" aria-hidden="true">
+          <span class="spec-label">before / after</span>
+          <div class="s-fea">
+            <span class="key">default</span><span class="row off">office &nbsp;1/2</span>
+            <span class="key key-on">liga · frac</span><span class="row">o<span class="hl">ﬃ</span>ce &nbsp;<span class="hl">½</span></span>
+          </div>
+        </div>
+        <h3 class="tool-title"><a href="./fea-proof/">OpenType Features Proof</a></h3>
+        <p class="tool-desc">
+          Shows what each GSUB/GPOS feature actually does, proofed on real words in the right
+          language with the affected glyphs marked. Includes per-language <em>locl</em>
+          inventories, feature combinations, and a mark/mkmk anchor explorer.
+        </p>
+        <div class="tool-foot">
+          <span class="fmt mono">OTF TTF WOFF WOFF2</span>
+          <span class="tag">HarfBuzz</span>
+          <a class="src" href="https://github.com/typedev/fea-proof">source</a>
+        </div>
+      </article>
+
+      <article class="tool">
+        <div class="spec" aria-hidden="true">
+          <span class="spec-label">Cyrillic · 246 / 256 · <span class="hl">◆</span> 1</span>
+          <div class="s-bars">
+            <i class="miss" style="left:30px"></i>
+            <i class="miss" style="left:35px"></i>
+            <i class="miss" style="left:95px"></i>
+            <i class="miss" style="left:180px"></i>
+            <i class="miss" style="left:185px"></i>
+            <i class="odd"  style="left:120px"></i>
+          </div>
+        </div>
+        <h3 class="tool-title"><a href="./rangeproof/">Range Proof</a></h3>
+        <p class="tool-desc">
+          Checks coverage of 61 curated Unicode blocks: which assigned characters are missing,
+          which codepoints the font maps beyond the standard, and what else is in the file —
+          down to glyphs that no codepoint can reach.
+        </p>
+        <div class="tool-foot">
+          <span class="fmt mono">OTF TTF WOFF WOFF2</span>
+          <span class="tag">Unicode 17</span>
+          <a class="src" href="https://github.com/typedev/range-proof">source</a>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ══ METADATA ══════════════════════════════════════ -->
+  <section class="band">
+    <div class="band-head">
+      <h2 class="band-title">Metadata</h2>
+      <p class="band-gloss">what the font declares</p>
+    </div>
+
+    <div class="grid">
+
+      <article class="tool">
+        <div class="spec" aria-hidden="true">
+          <span class="spec-label">diff · 2 fonts</span>
+          <div class="s-tbl">
+            <div class="r h"><span class="k">OS/2</span><span>Text</span><span>Text&nbsp;Bd</span></div>
+            <div class="r diff"><span class="k">usWeightClass</span><span class="v">400</span><span class="v">700</span></div>
+            <div class="r"><span class="k">achVendID</span><span class="v">TYDV</span><span class="v">TYDV</span></div>
+          </div>
+        </div>
+        <h3 class="tool-title"><a href="./ot-edit/">OT Tables Compare &amp; Patch</a></h3>
+        <p class="tool-desc">
+          Lines up <em>head</em>, <em>name</em>, <em>OS/2</em>, <em>STAT</em> and <em>avar</em>
+          from any number of fonts in one table and highlights what differs. Edit a value and
+          download rebuilt binaries, or export the edits as a JSON patch for the CLI.
+        </p>
+        <div class="tool-foot">
+          <span class="fmt mono">OTF TTF</span>
+          <span class="tag">writes fonts</span>
+          <a class="src" href="https://github.com/typedev/OT-tables-online">source</a>
+        </div>
+      </article>
+
+      <article class="tool">
+        <div class="spec" aria-hidden="true">
+          <span class="spec-label">PANOSE · 10 digits</span>
+          <div class="s-pan">
+            <b>2</b><b>11</b><b class="edit">6</b><b>3</b><b>5</b><b>4</b><b>5</b><b>2</b><b>2</b><b>4</b>
+          </div>
+        </div>
+        <h3 class="tool-title"><a href="./panose/">PANOSE Editor</a></h3>
+        <p class="tool-desc">
+          Reads the ten PANOSE digits out of <em>OS/2</em>, spells out what each one classifies,
+          and writes your changes back into the font. Batch-loads a whole family and exports
+          the resulting scheme.
+        </p>
+        <div class="tool-foot">
+          <span class="fmt mono">OTF TTF</span>
+          <span class="tag">writes fonts</span>
+          <a class="src" href="https://github.com/typedev/typedev.github.io">source</a>
+        </div>
+      </article>
+
+      <article class="tool">
+        <div class="spec" aria-hidden="true">
+          <span class="spec-label">RIBBI slots · 1 issue</span>
+          <div class="s-slots">
+            <span class="filled">Regular</span>
+            <span class="filled">Italic</span>
+            <span class="flag">Bold <span>⚠</span></span>
+            <span class="empty">Bold Italic</span>
+          </div>
+        </div>
+        <h3 class="tool-title"><a href="./family-inspector/">Font Family Inspector</a></h3>
+        <p class="tool-desc">
+          Groups a pile of files into families and RIBBI style slots, then flags the naming and
+          bit-level faults that break style linking — <em>fsSelection</em>, <em>macStyle</em>,
+          missing typographic names, absent <em>STAT</em>.
+        </p>
+        <div class="tool-foot">
+          <span class="fmt mono">OTF TTF WOFF WOFF2</span>
+          <span class="tag">CSV export</span>
+          <a class="src" href="https://github.com/typedev/typedev.github.io">source</a>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p class="foot-line">
+      Every tool here is a static page. <strong>No font file is ever sent anywhere</strong> —
+      it is read, shaped and rebuilt in your browser, and the rebuilt copy downloads straight
+      back to you. Originals are never touched.
+    </p>
+    <span class="repos-label mono">Source</span>
+    <dl class="repos">
+      <div class="repo">
+        <dt><a href="https://github.com/typedev/typedev.github.io">typedev.github.io</a></dt>
+        <dd>Font Tester · PANOSE Editor · Font Family Inspector</dd>
+      </div>
+      <div class="repo">
+        <dt><a href="https://github.com/typedev/fea-proof">fea-proof</a></dt>
+        <dd>OpenType Features Proof</dd>
+      </div>
+      <div class="repo">
+        <dt><a href="https://github.com/typedev/range-proof">range-proof</a></dt>
+        <dd>Range Proof</dd>
+      </div>
+      <div class="repo">
+        <dt><a href="https://github.com/typedev/OT-tables-online">OT-tables-online</a></dt>
+        <dd>OT Tables Compare &amp; Patch</dd>
+      </div>
+    </dl>
+  </footer>
+
+</div>
+
+</body>
+</html>
