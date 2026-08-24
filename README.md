@@ -50,3 +50,7 @@ python3 -m http.server 8000
 ```
 
 Deploy by pushing to `master`.
+
+## Author
+
+Built by Alexander Lubovenko — [github.com/typedev](https://github.com/typedev)

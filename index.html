@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>typedev — font tools</title>
+<meta name="author" content="Alexander Lubovenko">
 <meta name="description" content="Type design tools that run in your browser: proof, inspect and repair OTF, TTF, WOFF and WOFF2 files. Everything runs client-side — the font file never leaves your machine.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23171a21'/%3E%3Cpath d='M7 9h18v3.4h-7.1V25h-3.8V12.4H7z' fill='%234a90d9'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -249,6 +250,17 @@ a{color:inherit}
   max-width:52ch;margin-bottom:1.5rem;
 }
 .foot-line strong{color:var(--ink);font-weight:600}
+.byline{
+  margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--rule);
+  font-family:var(--prose);font-size:1rem;color:var(--dim);
+  display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;
+}
+.byline a{
+  color:var(--ink);text-decoration:none;
+  border-bottom:1px solid rgba(74,144,217,.45);
+}
+.byline a:hover,.byline a:focus-visible{color:var(--guide);border-bottom-color:var(--guide)}
+.byline-handle{font-size:.7rem;letter-spacing:.06em;color:var(--dim-2);text-transform:none}
 .repos{display:grid;gap:.55rem;max-width:60ch}
 .repo{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap}
 .repo dt{flex:0 0 11rem}
@@ -490,6 +502,10 @@ a{color:inherit}
         <dd>OT Tables Compare &amp; Patch</dd>
       </div>
     </dl>
+    <p class="byline">
+      <span>Made by <a href="https://github.com/typedev">Alexander Lubovenko</a></span>
+      <span class="byline-handle mono">github.com/typedev</span>
+    </p>
   </footer>
 
 </div>
