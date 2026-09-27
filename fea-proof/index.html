@@ -4,7 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenType Features Proof</title>
-    <script type="module" crossorigin src="./assets/index-DsWJjIm0.js"></script>
+    <script>
+      // Set the theme class before first paint (mirrors App.tsx) to avoid a flash.
+      try {
+        var t = localStorage.getItem('fea-proof:theme')
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        if (t === 'dark') document.documentElement.classList.add('dark')
+      } catch (e) {}
+    </script>
+    <script type="module" crossorigin src="./assets/index-CvhTsRm9.js"></script>
     <link rel="modulepreload" crossorigin href="./assets/rolldown-runtime-Bh1tDfsg.js">
     <link rel="modulepreload" crossorigin href="./assets/preload-helper-DYl5dUZ5.js">
     <link rel="stylesheet" crossorigin href="./assets/index-CltZ6wMl.css">
