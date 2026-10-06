@@ -22,6 +22,7 @@ One directory per tool, each served as `index.html`:
 | `fea-proof/` | OpenType Features Proof | no — deploy target of `typedev/fea-proof` |
 | `rangeproof/` | Range Proof | no — deploy target of `typedev/range-proof` |
 | `ot-edit/` | OT Tables Compare & Patch | no — deploy target of `typedev/OT-tables-online` |
+| `groups-control-web/` | Groups Control | no — project pages of `typedev/groups-control-web` (GitHub Actions), not a directory here |
 
 The three deploy targets are build output pushed by each source repo's `deploy.sh`.
 Never hand-edit them here — changes will be overwritten on the next deploy.
