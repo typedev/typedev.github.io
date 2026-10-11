@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>typedev — font tools</title>
 <meta name="author" content="Alexander Lubovenko">
-<meta name="description" content="Type design tools that run in your browser: proof, inspect and repair OTF, TTF, WOFF and WOFF2 files, and edit the kerning of UFO sources. Everything runs client-side — the font file never leaves your machine.">
+<meta name="description" content="Type design tools that run in your browser: proof, inspect and repair OTF, TTF, WOFF and WOFF2 files, and work on the kerning and anchors of UFO sources. Everything runs client-side — the font file never leaves your machine.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23171a21'/%3E%3Cpath d='M7 9h18v3.4h-7.1V25h-3.8V12.4H7z' fill='%234a90d9'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -170,6 +170,7 @@ a{color:inherit}
   font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;
   color:var(--dim);text-decoration:none;white-space:nowrap;
 }
+.src + .src{margin-left:0}
 .src:hover,.src:focus-visible{color:var(--guide)}
 
 /* ── specimens: each one is a miniature of the tool's own output ── */
@@ -270,6 +271,33 @@ a{color:inherit}
 .s-grp .flag{border-color:rgba(232,164,74,.5)}
 .s-grp .flag i{color:var(--mark)}
 
+/* 8 · anchorsfactory — anchors placed on base glyphs, composites built from them */
+.s-anc{display:flex;gap:4px}
+.s-anc span{
+  position:relative;width:2.9rem;height:42px;border-radius:3px;
+  border:1px solid var(--rule);background:var(--panel);
+  font-family:var(--prose);font-size:1.35rem;line-height:1;color:var(--ink);
+  display:flex;align-items:flex-end;justify-content:center;padding-bottom:6px;
+}
+.s-anc span::before{
+  content:'';position:absolute;left:0;right:0;bottom:16px;height:1px;
+  background-image:repeating-linear-gradient(90deg,rgba(74,144,217,.5) 0 2px,transparent 2px 4px);
+}
+.s-anc b{
+  position:absolute;left:50%;bottom:24px;width:9px;height:9px;margin-left:-4.5px;
+  border:1px solid var(--guide);border-radius:50%;
+  background:
+    linear-gradient(var(--guide),var(--guide)) center/1px 100% no-repeat,
+    linear-gradient(var(--guide),var(--guide)) center/100% 1px no-repeat;
+}
+.s-anc i{
+  position:absolute;top:2px;right:3px;font-style:normal;
+  font-family:var(--sans);font-variation-settings:'MONO' 1,'CASL' 0,'wght' 500;
+  font-size:.52rem;color:var(--dim);
+}
+.s-anc .built{border-color:rgba(232,164,74,.5)}
+.s-anc .built i{color:var(--mark)}
+
 /* ── footer ───────────────────────────────────────────── */
 .foot{border-top:1px solid var(--rule);padding:2.5rem 0 4rem}
 .foot-line{
@@ -338,8 +366,8 @@ a{color:inherit}
       </span>
     </h1>
     <p class="hero-note">
-      Proof, inspect and repair <strong>OTF, TTF, WOFF and WOFF2</strong> files, and edit
-      the kerning of <strong>UFO</strong> sources. Parsing, shaping and rebuilding all happen
+      Proof, inspect and repair <strong>OTF, TTF, WOFF and WOFF2</strong> files, and work on
+      <strong>UFO</strong> sources — kerning, anchors. Parsing, shaping and rebuilding all happen
       right here in the tab, so licensed and
       unreleased fonts stay on your machine — <strong>nothing uploads</strong>.
     </p>
@@ -505,11 +533,11 @@ a{color:inherit}
     </div>
   </section>
 
-  <!-- ══ SPACING ═══════════════════════════════════════ -->
+  <!-- ══ SOURCES ═══════════════════════════════════════ -->
   <section class="band">
     <div class="band-head">
-      <h2 class="band-title">Spacing</h2>
-      <p class="band-gloss">how the glyphs sit together</p>
+      <h2 class="band-title">Sources</h2>
+      <p class="band-gloss">the UFO, before it is a font</p>
     </div>
 
     <div class="grid">
@@ -534,6 +562,31 @@ a{color:inherit}
           <span class="fmt mono">UFO UFOZ</span>
           <span class="tag">writes fonts</span>
           <a class="src" href="https://github.com/typedev/groups-control-web">source</a>
+        </div>
+      </article>
+
+      <article class="tool">
+        <div class="spec" aria-hidden="true">
+          <span class="spec-label">top · x-height · <span class="hl">2</span> built</span>
+          <div class="s-anc">
+            <span>a<b></b><i>top</i></span>
+            <span>o<b></b><i>top</i></span>
+            <span class="built">á<i>a+´</i></span>
+            <span class="built">ô<i>o+ˆ</i></span>
+          </div>
+        </div>
+        <h3 class="tool-title"><a href="./AnchorsFactory/">AnchorsFactory Studio</a></h3>
+        <p class="tool-desc">
+          Anchors for UFO fonts, placed from a rule file — written, previewed and checked in
+          your browser. See every anchor, the scanlines and stems it was measured from, and the
+          composites built from it — every master of a <em>.designspace</em>. The font isn't modified: the rules
+          download as <em>.anchors</em> and <em>.glyphsConstruction</em>.
+        </p>
+        <div class="tool-foot">
+          <span class="fmt mono">UFO UFOZ</span>
+          <span class="tag">preview only</span>
+          <a class="src" href="https://pypi.org/project/anchorsfactory/">PyPI</a>
+          <a class="src" href="https://github.com/typedev/AnchorsFactory">source</a>
         </div>
       </article>
 
@@ -567,6 +620,10 @@ a{color:inherit}
       <div class="repo">
         <dt><a href="https://github.com/typedev/groups-control-web">groups-control-web</a></dt>
         <dd>Groups Control</dd>
+      </div>
+      <div class="repo">
+        <dt><a href="https://github.com/typedev/AnchorsFactory">AnchorsFactory</a></dt>
+        <dd>AnchorsFactory Studio</dd>
       </div>
     </dl>
     <p class="byline">

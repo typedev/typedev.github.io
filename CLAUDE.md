@@ -23,6 +23,7 @@ One directory per tool, each served as `index.html`:
 | `rangeproof/` | Range Proof | no — deploy target of `typedev/range-proof` |
 | `ot-edit/` | OT Tables Compare & Patch | no — deploy target of `typedev/OT-tables-online` |
 | `groups-control-web/` | Groups Control | no — project pages of `typedev/groups-control-web` (GitHub Actions), not a directory here |
+| `AnchorsFactory/` | AnchorsFactory Studio | no — project pages of `typedev/AnchorsFactory` (GitHub Actions on `v*` tags), not a directory here |
 
 The three deploy targets are build output pushed by each source repo's `deploy.sh`.
 Never hand-edit them here — changes will be overwritten on the next deploy.
@@ -31,7 +32,7 @@ Never hand-edit them here — changes will be overwritten on the next deploy.
 left behind when those two tools moved out of `fonttester/`.
 
 When adding a tool, give it its own directory with an `index.html` and add a card to
-the landing page (`index.html`) in the matching section — Proofing or Metadata.
+the landing page (`index.html`) in the matching section — Proofing, Metadata or Sources.
 
 ## Architecture
 
